@@ -18,6 +18,8 @@ For a consenting developer/tester: obtain source, install Xcode Command Line Too
 
 ## Release gates
 
+At source commit `0586ca1`, [PR #1 CI](https://github.com/c0dewars/HyperMac/actions/runs/37139980822) passed on both `macos-15` (Apple Silicon) and `macos-15-intel`: 15 XCTest tests, standalone lifecycle/geometry regressions, native release builds and bundle verification. The initial CI compiler timeout was fixed by splitting diagnostic report construction into explicitly typed steps. A clean local universal build also passed. These automated checks do not exercise the native window-management permission and UI flows on a clean Mac.
+
 - Green XCTest and standalone regression CI on Intel and Apple Silicon.
 - Native integration tests on minimum-supported and current macOS versions, both CPU families, and single/multiple displays.
 - Verify open/close/minimize/restore, native drag, recorder cancellation/hotkey restoration, redo after closing a window, profile selection and docking races.
@@ -30,4 +32,4 @@ Policy templates in `.github/policies` mirror Wardogs_calculator's two main-bran
 
 ## Policy enforcement limitation observed
 
-GitHub returned HTTP 403 for ruleset creation on the private repository: GitHub Pro or public visibility is required. The policy templates are prepared but must not be described as enforced until the server accepts them. Repository visibility will not be changed without the owner's approval.
+GitHub returned HTTP 403 for ruleset creation on the private repository: GitHub Pro or public visibility is required. The owner chose to keep HyperMac private and upgrade GitHub. The policy templates are prepared but are not enforced. After the upgrade, apply both templates with `gh api --method POST repos/c0dewars/HyperMac/rulesets --input <template-path>` and verify the returned active rulesets before relying on branch restrictions.
