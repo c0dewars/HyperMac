@@ -1,0 +1,15 @@
+.build/
+.swiftpm/
+dist/
+.DS_Store
+*.xcuserstate
+xcuserdata/
+
+# Signing credentials and local configuration must never be committed.
+*.p12
+*.pfx
+*.key
+*.pem
+.env
+.env.*
+notary-*.json

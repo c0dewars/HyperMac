@@ -1,0 +1,471 @@
+{
+  "version": 1,
+  "automaticTiling": true,
+  "algorithm": "bsp",
+  "gap": 12,
+  "excludedBundleIDs": [
+    "local.hypermac.app",
+    "com.apple.systempreferences"
+  ],
+  "shortcuts": [
+    {
+      "key": "return",
+      "modifiers": [
+        "ctrl",
+        "alt",
+        "cmd"
+      ],
+      "action": "launch",
+      "target": "@terminal"
+    },
+    {
+      "key": "return",
+      "modifiers": [
+        "ctrl",
+        "alt",
+        "cmd",
+        "shift"
+      ],
+      "action": "launch",
+      "target": "@browser"
+    },
+    {
+      "key": "b",
+      "modifiers": [
+        "ctrl",
+        "alt",
+        "cmd",
+        "shift"
+      ],
+      "action": "launch",
+      "target": "@browser"
+    },
+    {
+      "key": "f",
+      "modifiers": [
+        "ctrl",
+        "alt",
+        "cmd",
+        "shift"
+      ],
+      "action": "launch",
+      "target": "com.apple.finder"
+    },
+    {
+      "key": "m",
+      "modifiers": [
+        "ctrl",
+        "alt",
+        "cmd",
+        "shift"
+      ],
+      "action": "launch",
+      "target": "@music"
+    },
+    {
+      "key": "n",
+      "modifiers": [
+        "ctrl",
+        "alt",
+        "cmd",
+        "shift"
+      ],
+      "action": "launch",
+      "target": "@editor"
+    },
+    {
+      "key": "c",
+      "modifiers": [
+        "ctrl",
+        "alt",
+        "cmd",
+        "shift"
+      ],
+      "action": "launch",
+      "target": "com.apple.iCal"
+    },
+    {
+      "key": "e",
+      "modifiers": [
+        "ctrl",
+        "alt",
+        "cmd",
+        "shift"
+      ],
+      "action": "launch",
+      "target": "com.apple.mail"
+    },
+    {
+      "key": "a",
+      "modifiers": [
+        "ctrl",
+        "alt",
+        "cmd",
+        "shift"
+      ],
+      "action": "launch",
+      "target": "@ai"
+    },
+    {
+      "key": "g",
+      "modifiers": [
+        "ctrl",
+        "alt",
+        "cmd",
+        "shift"
+      ],
+      "action": "launch",
+      "target": "@messenger"
+    },
+    {
+      "key": "p",
+      "modifiers": [
+        "ctrl",
+        "alt",
+        "cmd",
+        "shift"
+      ],
+      "action": "launch",
+      "target": "com.apple.Photos"
+    },
+    {
+      "key": "s",
+      "modifiers": [
+        "ctrl",
+        "alt",
+        "cmd",
+        "shift"
+      ],
+      "action": "launch",
+      "target": "com.apple.Maps"
+    },
+    {
+      "key": "d",
+      "modifiers": [
+        "ctrl",
+        "alt",
+        "cmd",
+        "shift"
+      ],
+      "action": "launch",
+      "target": "com.docker.docker"
+    },
+    {
+      "key": "o",
+      "modifiers": [
+        "ctrl",
+        "alt",
+        "cmd",
+        "shift"
+      ],
+      "action": "launch",
+      "target": "@notes"
+    },
+    {
+      "key": "slash",
+      "modifiers": [
+        "ctrl",
+        "alt",
+        "cmd",
+        "shift"
+      ],
+      "action": "launch",
+      "target": "@passwords"
+    },
+    {
+      "key": "f",
+      "modifiers": [
+        "ctrl",
+        "alt",
+        "cmd"
+      ],
+      "action": "maximizeWindow",
+      "target": ""
+    },
+    {
+      "key": "minus",
+      "modifiers": [
+        "ctrl",
+        "alt",
+        "cmd"
+      ],
+      "action": "resizeWindow",
+      "target": "wider"
+    },
+    {
+      "key": "equal",
+      "modifiers": [
+        "ctrl",
+        "alt",
+        "cmd"
+      ],
+      "action": "resizeWindow",
+      "target": "narrower"
+    },
+    {
+      "key": "minus",
+      "modifiers": [
+        "ctrl",
+        "alt",
+        "cmd",
+        "shift"
+      ],
+      "action": "resizeWindow",
+      "target": "shorter"
+    },
+    {
+      "key": "equal",
+      "modifiers": [
+        "ctrl",
+        "alt",
+        "cmd",
+        "shift"
+      ],
+      "action": "resizeWindow",
+      "target": "taller"
+    },
+    {
+      "key": "t",
+      "modifiers": [
+        "ctrl",
+        "alt",
+        "cmd"
+      ],
+      "action": "toggleTiling",
+      "target": ""
+    },
+    {
+      "key": "r",
+      "modifiers": [
+        "ctrl",
+        "alt",
+        "cmd"
+      ],
+      "action": "retile",
+      "target": ""
+    },
+    {
+      "key": "left",
+      "modifiers": [
+        "ctrl",
+        "alt",
+        "cmd"
+      ],
+      "action": "focusWindow",
+      "target": "left"
+    },
+    {
+      "key": "left",
+      "modifiers": [
+        "ctrl",
+        "alt",
+        "cmd",
+        "shift"
+      ],
+      "action": "swapWindow",
+      "target": "left"
+    },
+    {
+      "key": "right",
+      "modifiers": [
+        "ctrl",
+        "alt",
+        "cmd"
+      ],
+      "action": "focusWindow",
+      "target": "right"
+    },
+    {
+      "key": "right",
+      "modifiers": [
+        "ctrl",
+        "alt",
+        "cmd",
+        "shift"
+      ],
+      "action": "swapWindow",
+      "target": "right"
+    },
+    {
+      "key": "up",
+      "modifiers": [
+        "ctrl",
+        "alt",
+        "cmd"
+      ],
+      "action": "focusWindow",
+      "target": "up"
+    },
+    {
+      "key": "up",
+      "modifiers": [
+        "ctrl",
+        "alt",
+        "cmd",
+        "shift"
+      ],
+      "action": "swapWindow",
+      "target": "up"
+    },
+    {
+      "key": "down",
+      "modifiers": [
+        "ctrl",
+        "alt",
+        "cmd"
+      ],
+      "action": "focusWindow",
+      "target": "down"
+    },
+    {
+      "key": "down",
+      "modifiers": [
+        "ctrl",
+        "alt",
+        "cmd",
+        "shift"
+      ],
+      "action": "swapWindow",
+      "target": "down"
+    }
+  ],
+  "layouts": [
+    {
+      "name": "Office",
+      "fallbackToPrimary": false,
+      "applyGap": true,
+      "placements": [
+        {
+          "bundleID": "com.apple.Safari",
+          "titleContains": "",
+          "windowIndex": 0,
+          "display": "external-1",
+          "frame": {
+            "x": 0,
+            "y": 0,
+            "width": 0.65,
+            "height": 1
+          }
+        },
+        {
+          "bundleID": "com.apple.Terminal",
+          "titleContains": "",
+          "windowIndex": 0,
+          "display": "external-1",
+          "frame": {
+            "x": 0.65,
+            "y": 0,
+            "width": 0.35,
+            "height": 1
+          }
+        },
+        {
+          "bundleID": "com.apple.TextEdit",
+          "titleContains": "",
+          "windowIndex": 0,
+          "display": "built-in",
+          "frame": {
+            "x": 0,
+            "y": 0,
+            "width": 1,
+            "height": 1
+          }
+        }
+      ]
+    },
+    {
+      "name": "Home",
+      "fallbackToPrimary": false,
+      "applyGap": true,
+      "placements": [
+        {
+          "bundleID": "com.apple.Safari",
+          "titleContains": "",
+          "windowIndex": 0,
+          "display": "external-1",
+          "frame": {
+            "x": 0,
+            "y": 0,
+            "width": 0.5,
+            "height": 1
+          }
+        },
+        {
+          "bundleID": "com.apple.Terminal",
+          "titleContains": "",
+          "windowIndex": 0,
+          "display": "external-1",
+          "frame": {
+            "x": 0.5,
+            "y": 0,
+            "width": 0.25,
+            "height": 1
+          }
+        },
+        {
+          "bundleID": "com.apple.TextEdit",
+          "titleContains": "",
+          "windowIndex": 0,
+          "display": "external-1",
+          "frame": {
+            "x": 0.75,
+            "y": 0,
+            "width": 0.25,
+            "height": 1
+          }
+        }
+      ]
+    },
+    {
+      "name": "Two externals",
+      "fallbackToPrimary": false,
+      "applyGap": true,
+      "placements": [
+        {
+          "bundleID": "com.apple.Safari",
+          "titleContains": "",
+          "windowIndex": 0,
+          "display": "external-1",
+          "frame": {
+            "x": 0,
+            "y": 0,
+            "width": 1,
+            "height": 1
+          }
+        },
+        {
+          "bundleID": "com.apple.Terminal",
+          "titleContains": "",
+          "windowIndex": 0,
+          "display": "external-2",
+          "frame": {
+            "x": 0,
+            "y": 0,
+            "width": 1,
+            "height": 1
+          }
+        },
+        {
+          "bundleID": "com.apple.TextEdit",
+          "titleContains": "",
+          "windowIndex": 0,
+          "display": "built-in",
+          "frame": {
+            "x": 0,
+            "y": 0,
+            "width": 1,
+            "height": 1
+          }
+        }
+      ]
+    }
+  ],
+  "borderEnabled": true,
+  "borderWidth": 3,
+  "appColors": {
+    "com.apple.Safari": "#59A6FF",
+    "com.apple.Terminal": "#51CDA3",
+    "com.apple.TextEdit": "#D995FA"
+  },
+  "borderColor": "#A6F3C2"
+}

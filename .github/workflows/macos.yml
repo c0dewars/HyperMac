@@ -1,0 +1,30 @@
+name: macOS build and test
+on: [push, pull_request, workflow_dispatch]
+permissions:
+  contents: read
+concurrency:
+  group: macos-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        runner: [macos-15, macos-15-intel]
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - name: Test core and build native app
+        run: bash scripts/build.sh --test --build-only --ad-hoc
+      - name: Run lifecycle and geometry regressions
+        run: |
+          swiftc Sources/HyperMacCore/*.swift scripts/check-shortcuts.swift -o "$RUNNER_TEMP/hypermac-checks"
+          "$RUNNER_TEMP/hypermac-checks"
+      - name: Verify test bundle
+        run: |
+          codesign --verify --strict dist/HyperMac.app
+          plutil -lint dist/HyperMac.app/Contents/Info.plist
+          bash -n scripts/*.sh
