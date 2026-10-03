@@ -468,10 +468,18 @@ final class Engine {
         let screenLines = screens.map {
             "\($0.name) [\($0.id)] builtIn=\($0.builtIn) primary=\($0.primary) usable x=\($0.usable.x) y=\($0.usable.y) w=\($0.usable.width) h=\($0.usable.height)"
         }
-        diagnosticReport = (["HyperMac \(Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") ?? "source")",
-            "\(ProcessInfo.processInfo.operatingSystemVersionString)", "\(Date())", summary,
-            "Accessibility: granted", "Displays:"] + screenLines + ["Discovery:"] + snapshot.notes
-            + ["Placement results:"] + report.details + ["Issues:"] + messages).joined(separator: "\n")
+        let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "source"
+        var diagnosticLines: [String] = ["HyperMac \(version)",
+            ProcessInfo.processInfo.operatingSystemVersionString, "\(Date())", summary,
+            "Accessibility: granted", "Displays:"]
+        diagnosticLines.append(contentsOf: screenLines)
+        diagnosticLines.append("Discovery:")
+        diagnosticLines.append(contentsOf: snapshot.notes)
+        diagnosticLines.append("Placement results:")
+        diagnosticLines.append(contentsOf: report.details)
+        diagnosticLines.append("Issues:")
+        diagnosticLines.append(contentsOf: messages)
+        diagnosticReport = diagnosticLines.joined(separator: "\n")
         onStatus?(messages.isEmpty ? summary : "\(summary) — \(messages.prefix(3).joined(separator: " "))")
     }
 
