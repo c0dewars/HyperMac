@@ -356,7 +356,7 @@ private struct ShortcutEditor: View {
                 Button("Remove", role: .destructive, action: remove)
             }
             HStack {
-                Picker("Action", selection: $shortcut.action) {
+                Picker("Action", selection: Binding(get: { shortcut.action }, set: { shortcut.selectAction($0) })) {
                     Text("Launch/focus app").tag(Action.launch)
                     Text("Apply layout").tag(Action.layout)
                     Text("Toggle tiling").tag(Action.toggleTiling)
@@ -386,13 +386,6 @@ private struct ShortcutEditor: View {
                             Text(target.capitalized).tag(target)
                         }
                     }
-                }
-            }
-            .onChange(of: shortcut.action) { _, action in
-                switch action {
-                case .focusWindow, .swapWindow: shortcut.target = "left"
-                case .resizeWindow: shortcut.target = "wider"
-                default: break
                 }
             }
         }
