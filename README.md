@@ -8,7 +8,7 @@
 
 HyperMac is a native macOS window manager that automatically arranges your apps, saves layouts for different setups, and puts window controls and app launchers on customizable keyboard shortcuts.
 
-> **0.6.0 · Development preview.** Apple Silicon and Intel builds and automated tests pass. Clean-Mac installation and the full window-management compatibility matrix are still being validated. There is currently **no ready-to-install, notarized DMG release**. See [release readiness](RELEASE-READINESS.md) for the remaining work.
+> **0.6.1 · Development preview · Apple Silicon only.** Intel support has been retired. Clean-Mac installation and the full window-management compatibility matrix are still being validated. Preview DMGs are ad-hoc signed; there is **no notarized production release**. See [release readiness](RELEASE-READINESS.md) for the remaining work.
 
 ## What you can do
 
@@ -24,12 +24,18 @@ HyperMac is a native macOS window manager that automatically arranges your apps,
 
 ## Requirements
 
-- macOS **14 or later**, on **Apple Silicon or Intel**. This is the declared minimum; not every supported macOS version has been tested.
+- macOS **14 or later**, on **Apple Silicon (M1 or newer)**. This is the declared minimum; not every supported macOS version has been tested.
 - Accessibility permission so HyperMac can move and resize windows.
 - Xcode Command Line Tools for the current source installation process. Full Xcode is needed to run XCTest.
 - Access to this private GitHub repository to download source or clone it.
 
 Karabiner-Elements is optional. If you already map Caps Lock to Hyper, that mapping works with HyperMac's Hyper shortcuts.
+
+## Preview downloads
+
+Authorized repository users can run **Actions → Apple Silicon preview DMG → Run workflow**. The default creates a downloadable build artifact. Enable **Publish an unnotarized prerelease** on `main` to attach the DMG and SHA-256 checksum to [Releases](https://github.com/c0dewars/HyperMac/releases). Private repository access is required.
+
+These are development previews: Gatekeeper may block them, and replacing a locally signed copy may require refreshing Accessibility permission. Source installation below preserves a stable local signing identity.
 
 ## Install from source
 
@@ -146,16 +152,19 @@ Build and test on a Mac with full Xcode selected:
 bash scripts/build.sh --test --build-only --ad-hoc
 ```
 
-Create a universal test app without installing it:
+Package the Apple Silicon test app as a preview DMG:
 
 ```sh
-bash scripts/build.sh --universal --build-only --ad-hoc
+bash scripts/build.sh --build-only --ad-hoc
+bash scripts/package-dmg.sh
 ```
 
 The output is `dist/HyperMac.app`. This ad-hoc test bundle is not a notarized release, and the normal installer refuses it.
 
-[GitHub Actions](https://github.com/c0dewars/HyperMac/actions) runs unit tests, lifecycle/geometry regressions, native builds and bundle checks on Intel and Apple Silicon. Both architecture jobs passed for the compiler compatibility fix. Automated checks do not replace real-window and clean-machine testing.
+[GitHub Actions](https://github.com/c0dewars/HyperMac/actions) runs unit tests, lifecycle/geometry regressions, native builds and bundle checks on Apple Silicon. Automated checks do not replace real-window and clean-machine testing.
 
 See [test coverage and limitations](TEST-RESULTS.md), [release readiness](RELEASE-READINESS.md), and [security](SECURITY.md). Native integration, docking, Spaces/fullscreen, performance and distribution validation remain incomplete.
 
 HyperMac has its own native implementation. Its interaction design is inspired by Omarchy, yabai and JankyBorders; those projects are not bundled or required.
+
+See [the responsiveness analysis](PERFORMANCE.md) for measured planning costs, implemented fixes, remaining bottlenecks and the live validation plan.

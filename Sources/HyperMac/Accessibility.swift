@@ -138,7 +138,8 @@ final class Accessibility {
         }
     }
 
-    func move(_ windows: [ManagedWindow], moves: [Move], animationDuration: Double = 0) async -> MoveReport {
+    func move(_ windows: [ManagedWindow], moves: [Move], animationDuration: Double = 0,
+              onAnimation: (@MainActor (Bool) -> Void)? = nil) async -> MoveReport {
         guard !moves.isEmpty else { return MoveReport() }
         var pending = moves
         var lastErrors: [Int: String] = [:]
@@ -160,10 +161,12 @@ final class Accessibility {
         }
         if restored { try? await Task.sleep(nanoseconds: 300_000_000) }
         if animationDuration > 0 {
+            await onAnimation?(true)
             await animate(windows, moves: moves, duration: animationDuration)
+            await onAnimation?(false)
         }
         // Allow apps/WindowServer to settle before checking, then correct only failed targets.
-        for settlingDelay in [150_000_000, 300_000_000, 600_000_000] as [UInt64] {
+        for settlingDelay in [40_000_000, 150_000_000, 300_000_000, 600_000_000] as [UInt64] {
             let batch = pending
             let errors: [Int: String] = await withCheckedContinuation { continuation in
             queue.async {
@@ -202,8 +205,9 @@ final class Accessibility {
             try? await Task.sleep(nanoseconds: settlingDelay)
             // Finder can apply AXSize asynchronously and shift the origin while resizing.
             // Correct the origin only after the size write has settled.
-            await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
+            let repositioned: Bool = await withCheckedContinuation { continuation in
                 queue.async {
+                    var repositioned = false
                     for move in batch {
                         guard let window = windows.first(where: { $0.descriptor.id == move.windowID }),
                               let current = Self.frame(window.element),
@@ -211,12 +215,13 @@ final class Accessibility {
                         var point = CGPoint(x: move.frame.x, y: move.frame.y)
                         if let value = AXValueCreate(.cgPoint, &point) {
                             _ = AXUIElementSetAttributeValue(window.element, kAXPositionAttribute as CFString, value)
+                            repositioned = true
                         }
                     }
-                    continuation.resume()
+                    continuation.resume(returning: repositioned)
                 }
             }
-            try? await Task.sleep(nanoseconds: 100_000_000)
+            if repositioned { try? await Task.sleep(nanoseconds: 100_000_000) }
             actualFrames = await withCheckedContinuation { continuation in
                 queue.async {
                     var frames: [Int: Rect] = [:]
@@ -262,6 +267,7 @@ final class Accessibility {
         }) else { return }
         let started = ProcessInfo.processInfo.systemUptime
         while !Task.isCancelled {
+            let frameStarted = ProcessInfo.processInfo.systemUptime
             let progress = min(1, (ProcessInfo.processInfo.systemUptime - started) / duration)
             await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
                 queue.async {
@@ -280,7 +286,10 @@ final class Accessibility {
                 }
             }
             if progress >= 1 { break }
-            try? await Task.sleep(nanoseconds: 16_666_667)
+            // AX writes consume part of the frame budget; do not add a full frame
+            // of sleep after them or the animation slows as the window count grows.
+            let remaining = 1.0 / 60 - (ProcessInfo.processInfo.systemUptime - frameStarted)
+            if remaining > 0 { try? await Task.sleep(nanoseconds: UInt64(remaining * 1_000_000_000)) }
         }
     }
 
@@ -336,6 +345,7 @@ final class WindowEvents {
     private var observers: [pid_t: AXObserver] = [:]
     private var watchedWindows: [pid_t: [AXUIElement]] = [:]
     var onChange: (() -> Void)?
+    var onResize: (() -> Void)?
 
     func synchronize() {
         let apps = NSWorkspace.shared.runningApplications.filter {
@@ -353,6 +363,10 @@ final class WindowEvents {
             let status = AXObserverCreate(app.processIdentifier, { _, element, notification, context in
                 guard let context else { return }
                 let instance = Unmanaged<WindowEvents>.fromOpaque(context).takeUnretainedValue()
+                if notification as String == kAXResizedNotification {
+                    instance.onResize?()
+                    return
+                }
                 if notification as String == kAXUIElementDestroyedNotification {
                     for pid in Array(instance.watchedWindows.keys) {
                         instance.watchedWindows[pid]?.removeAll { CFEqual($0, element) }
@@ -377,7 +391,7 @@ final class WindowEvents {
             let current = grouped[pid]?.map(\.element) ?? []
             let previous = watchedWindows[pid] ?? []
             let notifications = [kAXUIElementDestroyedNotification, kAXWindowMiniaturizedNotification,
-                                 kAXWindowDeminiaturizedNotification]
+                                 kAXWindowDeminiaturizedNotification, kAXResizedNotification]
             for window in current where !previous.contains(where: { CFEqual($0, window) }) {
                 for name in notifications {
                     _ = AXObserverAddNotification(observer, window, name as CFString, Unmanaged.passUnretained(self).toOpaque())

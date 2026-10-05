@@ -41,9 +41,6 @@
         "required_status_checks": [
           {
             "context": "build (macos-15)"
-          },
-          {
-            "context": "build (macos-15-intel)"
           }
         ]
       }

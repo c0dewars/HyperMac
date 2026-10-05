@@ -5,15 +5,14 @@ cd "$(dirname "$0")/.."
 run_tests=false
 install_app=true
 ad_hoc=false
-universal=false
 for argument in "$@"; do
     case "$argument" in
-        --universal) universal=true ;;
+        --universal) echo "Intel support has been retired; builds are Apple Silicon only." >&2; exit 2 ;;
         --ad-hoc) ad_hoc=true ;;
         --test) run_tests=true ;;
         --build-only) install_app=false ;;
         --help|-h)
-            echo "Usage: bash scripts/build.sh [--test] [--build-only] [--ad-hoc] [--universal]"
+            echo "Usage: bash scripts/build.sh [--test] [--build-only] [--ad-hoc]"
             echo "Builds, installs into Applications and opens HyperMac."
             echo "--test runs XCTest first using full Xcode. --build-only skips installation."
             exit 0 ;;
@@ -28,6 +27,10 @@ fi
 
 if [[ "$(uname -s)" != "Darwin" ]]; then
     echo "Build HyperMac on macOS 14 or later, with Xcode Command Line Tools installed." >&2
+    exit 1
+fi
+if [[ "$(uname -m)" != "arm64" ]]; then
+    echo "HyperMac requires Apple Silicon. Run Terminal natively, outside Rosetta." >&2
     exit 1
 fi
 if ! xcrun --find swift >/dev/null 2>&1; then
@@ -57,19 +60,12 @@ else
 fi
 app_dir="$PWD/dist/HyperMac.app"
 mkdir -p "$app_dir/Contents/MacOS" "$app_dir/Contents/Resources"
-architectures=("$(uname -m)")
-if [[ "$universal" == true ]]; then architectures=(arm64 x86_64); fi
-binaries=()
-for architecture in "${architectures[@]}"; do
-    xcrun swift build --configuration release --arch "$architecture" --product HyperMac
-    bin_dir="$(xcrun swift build --configuration release --arch "$architecture" --show-bin-path)"
-    binaries+=("$bin_dir/HyperMac")
-done
-if [[ "$universal" == true ]]; then
-    xcrun lipo -create "${binaries[@]}" -output "$app_dir/Contents/MacOS/HyperMac"
-else
-    cp "${binaries[0]}" "$app_dir/Contents/MacOS/HyperMac"
-fi
+xcrun swift build --configuration release --arch arm64 --product HyperMac
+bin_dir="$(xcrun swift build --configuration release --arch arm64 --show-bin-path)"
+cp "$bin_dir/HyperMac" "$app_dir/Contents/MacOS/HyperMac"
+[[ "$(xcrun lipo -archs "$app_dir/Contents/MacOS/HyperMac")" == "arm64" ]] || {
+    echo "Expected an Apple Silicon binary." >&2; exit 1;
+}
 cp Resources/Info.plist "$app_dir/Contents/Info.plist"
 cp Resources/AppIcon.icns "$app_dir/Contents/Resources/AppIcon.icns"
 if [[ "$ad_hoc" == true ]]; then

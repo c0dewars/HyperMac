@@ -7,11 +7,8 @@ concurrency:
   cancel-in-progress: true
 jobs:
   build:
-    strategy:
-      fail-fast: false
-      matrix:
-        runner: [macos-15, macos-15-intel]
-    runs-on: ${{ matrix.runner }}
+    name: build (macos-15)
+    runs-on: macos-15
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
@@ -28,3 +25,5 @@ jobs:
           codesign --verify --strict dist/HyperMac.app
           plutil -lint dist/HyperMac.app/Contents/Info.plist
           bash -n scripts/*.sh
+      - name: Verify Apple Silicon preview packaging
+        run: bash scripts/package-dmg.sh

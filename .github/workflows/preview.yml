@@ -1,0 +1,71 @@
+name: Apple Silicon preview DMG
+on:
+  workflow_dispatch:
+    inputs:
+      publish:
+        description: Publish an unnotarized prerelease (otherwise artifact only)
+        type: boolean
+        default: false
+permissions:
+  contents: read
+concurrency:
+  group: preview-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  package:
+    runs-on: macos-15
+    timeout-minutes: 20
+    outputs:
+      tag: ${{ steps.version.outputs.tag }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - name: Build and test Apple Silicon app
+        run: bash scripts/build.sh --test --build-only --ad-hoc
+      - name: Check lifecycle and geometry
+        run: |
+          swiftc Sources/HyperMacCore/*.swift scripts/check-shortcuts.swift -o "$RUNNER_TEMP/hypermac-checks"
+          "$RUNNER_TEMP/hypermac-checks"
+      - name: Package and verify DMG
+        run: bash scripts/package-dmg.sh
+      - id: version
+        name: Identify preview
+        run: |
+          version=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' Resources/Info.plist)
+          echo "tag=preview-$version-${GITHUB_SHA:0:7}" >> "$GITHUB_OUTPUT"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: HyperMac-apple-silicon-preview
+          path: |
+            dist/*.dmg
+            dist/*.sha256
+          if-no-files-found: error
+          retention-days: 14
+  publish:
+    if: inputs.publish && github.ref == 'refs/heads/main'
+    needs: package
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      actions: read
+    steps:
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: HyperMac-apple-silicon-preview
+          path: preview
+      - name: Publish development prerelease
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          PREVIEW_TAG: ${{ needs.package.outputs.tag }}
+          RELEASE_COMMIT: ${{ github.sha }}
+        run: |
+          cat > notes.md <<'NOTES'
+          Apple Silicon only, macOS 14+. Development preview, not production-ready.
+
+          This DMG is ad-hoc signed and is NOT Apple-notarized. Gatekeeper may block it. Replacing a locally signed copy may require Accessibility permission to be refreshed. Read the repository README before installation. No production signing credentials are included.
+
+          Download the DMG and its SHA-256 checksum below. Access follows the repository's private visibility.
+          NOTES
+          gh release create "$PREVIEW_TAG" preview/* --target "$RELEASE_COMMIT" --prerelease --latest=false --title "HyperMac Apple Silicon preview" --notes-file notes.md

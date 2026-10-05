@@ -32,6 +32,8 @@ final class Engine {
     private var profileTask: Task<Void, Never>?
     private var lastTopology: [String]?
     private var mouseWasDown = false
+    private var mouseReleaseMonitor: Any?
+    private var focusCommand: Task<Void, Never>?
     var canUndo: Bool { !undoWindows.isEmpty }
     private var arrangementRequest = 0
     private var lastTargets: [Int: Rect] = [:]
@@ -50,6 +52,17 @@ final class Engine {
 
     func start() {
         events.onChange = { [weak self] in self?.windowEvent() }
+        events.onResize = { [weak self] in
+            guard let self, self.mode == .automatic, self.config.mouseResize,
+                  self.config.algorithm == .bsp, NSEvent.pressedMouseButtons & 1 != 0 else { return }
+            self.mouseWasDown = true
+        }
+        mouseReleaseMonitor = NSEvent.addGlobalMonitorForEvents(matching: .leftMouseUp) { [weak self] _ in
+            Task { @MainActor in
+                guard let self, self.mouseWasDown else { return }
+                self.schedule()
+            }
+        }
         let workspace = NSWorkspace.shared.notificationCenter
         for name in [NSWorkspace.didLaunchApplicationNotification, NSWorkspace.didTerminateApplicationNotification,
                      NSWorkspace.didUnhideApplicationNotification, NSWorkspace.didHideApplicationNotification,
@@ -110,7 +123,17 @@ final class Engine {
         case .retile: retile()
         case .layout: applyLayout(shortcut.target)
         case .launch: launch(shortcut.target, activate: true)
-        case .focusWindow, .swapWindow, .resizeWindow, .maximizeWindow:
+        case .focusWindow:
+            // Focusing does not mutate geometry and need not wait for settling/retries.
+            // Keep focus requests ordered relative to one another.
+            let previous = focusCommand
+            previous?.cancel()
+            focusCommand = Task { [weak self] in
+                await previous?.value
+                guard !Task.isCancelled else { return }
+                await self?.performWindowCommand(shortcut)
+            }
+        case .swapWindow, .resizeWindow, .maximizeWindow:
             let previous = windowCommand
             pendingWindowCommands += 1
             windowCommand = Task { [weak self] in
@@ -142,7 +165,7 @@ final class Engine {
             onStatus?("No supported focused window. Exit native fullscreen first."); return
         }
         let snapshot = await accessibility.snapshot(excluding: config.excludedBundleIDs)
-        guard expectedGeneration == generation else { return }
+        guard expectedGeneration == generation, !Task.isCancelled else { return }
         guard let source = snapshot.windows.first(where: { CFEqual($0.element, focused.element) }) else {
             onStatus?("The focused window cannot be moved or resized."); return
         }
@@ -327,7 +350,8 @@ final class Engine {
     }
 
     func schedule() {
-        pending?.cancel()
+        // Coalesce a burst at its first deadline; repeated events must not postpone it.
+        guard pending == nil else { return }
         let work = DispatchWorkItem { [weak self] in
             Task { @MainActor in
                 self?.pending = nil
@@ -335,7 +359,7 @@ final class Engine {
             }
         }
         pending = work
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.18, execute: work)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.03, execute: work)
     }
 
     private func windowEvent() {
@@ -363,6 +387,7 @@ final class Engine {
         }
         guard mode != .paused else { onStatus?("Paused — click Tile now or Save & arrange a layout."); return }
         busy = true
+        let passStarted = ProcessInfo.processInfo.systemUptime
         let expectedGeneration = generation
         defer {
             busy = false
@@ -372,6 +397,7 @@ final class Engine {
         let restoreMinimized: Bool
         if case .layout(let name) = mode { restoreMinimized = config.layouts.first { $0.name == name }?.adaptive != true } else { restoreMinimized = false }
         let snapshot = await accessibility.snapshot(excluding: config.excludedBundleIDs, includeMinimized: restoreMinimized)
+        let discoveryFinished = ProcessInfo.processInfo.systemUptime
         let windows = snapshot.windows
         guard expectedGeneration == generation else { return }
         events.watch(windows)
@@ -424,9 +450,7 @@ final class Engine {
         let duration = NSWorkspace.shared.accessibilityDisplayShouldReduceMotion || targets == lastTargets
             ? 0 : config.animationDuration
         lastTargets = targets
-        onTransition?(true)
-        defer { onTransition?(false) }
-        var report = await accessibility.move(windows, moves: moves, animationDuration: duration)
+        var report = await accessibility.move(windows, moves: moves, animationDuration: duration, onAnimation: onTransition)
         if needsReflow, expectedGeneration == generation {
             var learned = false
             for move in moves {
@@ -479,6 +503,7 @@ final class Engine {
         diagnosticLines.append(contentsOf: report.details)
         diagnosticLines.append("Issues:")
         diagnosticLines.append(contentsOf: messages)
+        diagnosticLines.append("Timing: discovery=\(Int((discoveryFinished - passStarted) * 1000))ms total=\(Int((ProcessInfo.processInfo.systemUptime - passStarted) * 1000))ms")
         diagnosticReport = diagnosticLines.joined(separator: "\n")
         onStatus?(messages.isEmpty ? summary : "\(summary) — \(messages.prefix(3).joined(separator: " "))")
     }
@@ -532,6 +557,9 @@ final class Engine {
     }
 
     func stop() {
+        if let mouseReleaseMonitor { NSEvent.removeMonitor(mouseReleaseMonitor) }
+        mouseReleaseMonitor = nil
+        focusCommand?.cancel(); focusCommand = nil
         reconciliationTimer?.invalidate(); reconciliationTimer = nil
         pause(); pending?.cancel(); discoveryRetry?.cancel()
         for (center, token) in notificationTokens { center.removeObserver(token) }

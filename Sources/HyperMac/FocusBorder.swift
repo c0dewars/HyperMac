@@ -12,6 +12,7 @@ final class FocusBorder {
     private var observers: [pid_t: AXObserver] = [:]
     private var watched: [pid_t: [AXUIElement]] = [:]
     private var pending: DispatchWorkItem?
+    private var pendingGeometry: DispatchWorkItem?
     private var visibilityTimer: Timer?
     private var lastStack = ""
     private var transitionTimer: Timer?
@@ -42,8 +43,11 @@ final class FocusBorder {
             Task { @MainActor in
                 guard let self, self.active, self.config.borderEnabled else { return }
                 let stack = self.visibleStack()
-                let signature = stack.map { "\($0.number):\($0.frame)" }.joined(separator: "|")
-                guard signature != self.lastStack else { return }
+                let signature = stack.map { String($0.number) }.joined(separator: "|")
+                guard signature != self.lastStack else {
+                    if self.transitionTimer == nil { self.trackExistingBorders() }
+                    return
+                }
                 self.lastStack = signature
                 self.schedule()
             }
@@ -143,6 +147,17 @@ final class FocusBorder {
         } else { schedule() }
     }
 
+    private func scheduleGeometryUpdate() {
+        guard active, config.borderEnabled, transitionTimer == nil, pendingGeometry == nil else { return }
+        let work = DispatchWorkItem { [weak self] in
+            guard let self else { return }
+            self.pendingGeometry = nil
+            self.trackExistingBorders()
+        }
+        pendingGeometry = work
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0 / 60, execute: work)
+    }
+
     private func trackExistingBorders() {
         guard active, config.borderEnabled else { return }
         let stack = visibleStack()
@@ -151,26 +166,30 @@ final class FocusBorder {
             guard let number = owners[id], let owner = stack.first(where: { $0.number == number }) else {
                 panel.orderOut(nil); continue
             }
-            update(panel, owner: owner.frame, number: number, top: top)
+            update(panel, owner: owner.frame, number: number, top: top, reorder: !panel.isVisible)
         }
     }
 
-    private func update(_ panel: BorderPanel, owner: CGRect, number: Int, top: CGFloat) {
+    private func update(_ panel: BorderPanel, owner: CGRect, number: Int, top: CGFloat, reorder: Bool = true) {
             // Use the owner's current WindowServer bounds, not an earlier AX snapshot.
             let geometry = BorderGeometry.outside(window: Rect(x: owner.minX, y: owner.minY,
                 width: owner.width, height: owner.height), width: config.borderWidth)
             let frame = geometry.panel
             let rect = NSRect(x: frame.x, y: top - frame.y - frame.height, width: frame.width, height: frame.height)
             let outline = panel.contentView as? BorderView
-            outline?.color = AppColor.nsColor(config.borderColor)
-            outline?.lineWidth = CGFloat(config.borderWidth)
-            panel.setFrame(rect, display: false)
-            outline?.strokeFrame = NSRect(x: geometry.stroke.x, y: geometry.stroke.y,
+            let color = AppColor.nsColor(config.borderColor)
+            let stroke = NSRect(x: geometry.stroke.x, y: geometry.stroke.y,
                 width: geometry.stroke.width, height: geometry.stroke.height)
-            outline?.needsDisplay = true
+            if panel.frame != rect { panel.setFrame(rect, display: false) }
+            if outline?.color != color || outline?.lineWidth != CGFloat(config.borderWidth) || outline?.strokeFrame != stroke {
+                outline?.color = color
+                outline?.lineWidth = CGFloat(config.borderWidth)
+                outline?.strokeFrame = stroke
+                outline?.needsDisplay = true
+            }
             // The ring is outside the owner. Native ordering supplies occlusion;
             // rectangular clipping falsely treats transparent windows as opaque.
-            panel.order(.below, relativeTo: number)
+            if reorder { panel.order(.below, relativeTo: number) }
     }
 
     private var windowNotifications: [String] {
@@ -189,10 +208,14 @@ final class FocusBorder {
         for (pid, members) in grouped {
             if observers[pid] == nil {
                 var next: AXObserver?
-                guard AXObserverCreate(pid, { _, _, _, context in
+                guard AXObserverCreate(pid, { _, _, notification, context in
                     guard let context else { return }
                     let owner = Unmanaged<FocusBorder>.fromOpaque(context).takeUnretainedValue()
-                    Task { @MainActor in owner.schedule() }
+                    let geometryOnly = notification as String == kAXMovedNotification || notification as String == kAXResizedNotification
+                    Task { @MainActor in
+                        if geometryOnly { owner.scheduleGeometryUpdate() }
+                        else { owner.schedule() }
+                    }
                 }, &next) == .success, let next else { continue }
                 observers[pid] = next
                 let app = AXUIElementCreateApplication(pid)
@@ -225,6 +248,8 @@ final class FocusBorder {
         observers.removeAll(); watched.removeAll()
     }
     func stop() {
+        pendingGeometry?.cancel(); pendingGeometry = nil
+        transitionTimer?.invalidate(); transitionTimer = nil
         visibilityTimer?.invalidate(); visibilityTimer = nil
         active = false; generation += 1
         pending?.cancel(); pending = nil; clearObservers()
