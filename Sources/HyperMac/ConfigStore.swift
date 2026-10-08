@@ -1,4 +1,5 @@
 import Foundation
+import AppKit
 import HyperMacCore
 
 final class ConfigStore {
@@ -14,7 +15,12 @@ final class ConfigStore {
     }
 
     func load() throws -> Configuration {
-        if !FileManager.default.fileExists(atPath: url.path) { try save(.starter) }
+        if !FileManager.default.fileExists(atPath: url.path) {
+            var initial = Configuration.starter
+            let browser = NSWorkspace.shared.urlForApplication(toOpen: URL(string: "https://example.com")!).flatMap { Bundle(url: $0)?.bundleIdentifier } ?? "com.apple.Safari"
+            initial.layouts = Configuration.defaultLayouts(browser: browser)
+            try save(initial)
+        }
         let data = try Data(contentsOf: url)
         var config = try Configuration.decode(data)
         if config.shortcuts == Configuration.legacyShortcuts {

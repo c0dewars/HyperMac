@@ -8,23 +8,27 @@
 
 HyperMac is a native macOS window manager that automatically arranges your apps, saves layouts for different setups, and puts window controls and app launchers on customizable keyboard shortcuts.
 
-> **0.6.2 · Development preview · Apple Silicon only.** Intel support has been retired. Clean-Mac installation and the full window-management compatibility matrix are still being validated. Preview DMGs are ad-hoc signed; there is **no notarized production release**. See [release readiness](RELEASE-READINESS.md) for the remaining work.
+> **0.7.0 build 28 · Development preview · Apple Silicon only.** Intel support has been retired. Clean-Mac installation and the full window-management compatibility matrix are still being validated. Preview DMGs are ad-hoc signed; there is **no notarized production release**. See [release readiness](RELEASE-READINESS.md) for the remaining work.
 
 ## Feature tour
 
 ![HyperMac feature walkthrough](docs/media/hypermac-feature-tour.gif)
 
-A captioned tour of the interface, including a labeled monitor-profile illustration. This is a screenshot walkthrough, not a live animation recording. [Browse the screenshots and capture notes](docs/media/README.md).
+A captioned tour of automatic tiling, horizontal columns, the screen-first Layouts editor, destination previews, widths and groups, blur controls, and the redesigned shortcut editor. This is a screenshot walkthrough, not a recording or proof of animation smoothness. [Browse the screenshots and capture notes](docs/media/README.md).
 
 ## What you can do
 
 - **Tile automatically:** opening, closing, minimizing or restoring eligible windows redistributes available space. Dynamic splits is the default for new configurations.
 - **Keep selected apps floating:** choose apps from Applications in the exclusions list. System Settings is excluded by default.
 - **Customize borders and transitions:** light-green borders by default, adjustable width and color, and eased movement that respects Reduce Motion.
+- **Start with two presets:** Normal (adaptive tiling) and Horizontal (scrolling), using your default browser, VS Code and Teams. Choose different apps from Applications and customize widths or groups.
 - **Create saved layouts:** drag apps onto monitor previews, resize their rectangles, duplicate layouts, or capture your current arrangement.
+- **Try horizontal scrolling:** keep independent columns on one or every monitor, choose a tiling mode separately for each display, customize app widths per screen, reserve space for neighbors, and navigate with Hyper + H/L. [Experimental controls and limitations](docs/SCROLLING.md).
 - **Use adaptive layouts:** let the open windows listed in a saved layout share the available space.
 - **Undo and redo an arrangement:** restore one previous arrangement of surviving windows.
-- **Record shortcuts:** press a combination and select launch targets with an application picker.
+- **Edit shortcuts:** search or filter a compact list, click a key combination to record it, and expand a row to change its action. Conflicting combinations are rejected.
+- **Adjust settings immediately:** valid changes save automatically; appearance controls apply without retiling. Blur has a complete Off switch and a 0–100% intensity slider.
+- **Remove layout apps:** use × on a horizontal card or the minus control in the sidebar. Screen-specific exclusions keep removed apps out even with include-all enabled.
 - **Switch layouts when docking:** save monitor profiles for your connected display setups.
 - **Resize with the mouse:** in automatic Dynamic splits mode, drag a normal window edge or corner to adjust neighboring tiles when you release it.
 
@@ -32,16 +36,22 @@ A captioned tour of the interface, including a labeled monitor-profile illustrat
 
 - macOS **14 or later**, on **Apple Silicon (M1 or newer)**. This is the declared minimum; not every supported macOS version has been tested.
 - Accessibility permission so HyperMac can move and resize windows.
-- Xcode Command Line Tools for the current source installation process. Full Xcode is needed to run XCTest.
+- Xcode Command Line Tools only when building from source. Full Xcode is needed to run XCTest; neither is required to install a DMG.
 - Access to this private GitHub repository to download source or clone it.
 
 Karabiner-Elements is optional. If you already map Caps Lock to Hyper, that mapping works with HyperMac's Hyper shortcuts.
 
 ## Preview downloads
 
+The **0.7.0 build 28** test prerelease includes horizontal scrolling, the new shortcut editor and corrected per-screen Preview & apply routing. Download the DMG and checksum from [Releases](https://github.com/c0dewars/HyperMac/releases). See the [remaining fixes and acceptance checks](docs/KNOWN-ISSUES.md) before testing.
+
 Authorized repository users can run **Actions → Apple Silicon preview DMG → Run workflow**. The default creates a downloadable build artifact. Enable **Publish an unnotarized prerelease** on `main` to attach the DMG and SHA-256 checksum to [Releases](https://github.com/c0dewars/HyperMac/releases). Private repository access is required.
 
 These are development previews: Gatekeeper may block them, and replacing a locally signed copy may require refreshing Accessibility permission. Source installation below preserves a stable local signing identity.
+
+If a downloaded preview says **the developer cannot be verified**, move it into Applications, try opening it, then use **System Settings → Privacy & Security → Open Anyway** for HyperMac if you choose to trust it. Follow [Apple's instructions](https://support.apple.com/102445). HyperMac runs in the menu bar; enable Accessibility on each Mac after installation.
+
+No paid Apple account is needed for this installation path. [Sharing a preview with friends](docs/DISTRIBUTION.md) explains the package, first launch and updates. Signing status is separate from app stability: horizontal scrolling remains experimental.
 
 ## Install from source
 
@@ -79,7 +89,7 @@ Open HyperMac from Applications to show its settings, or use its menu-bar contro
 | Tab | Use it for |
 | --- | --- |
 | **General** | Enable or pause tiling, choose its algorithm and gaps, customize borders and transitions, exclude apps, and capture an arrangement. |
-| **Shortcuts** | Record a key combination, choose an app to launch, or assign a window/layout action. Save your changes to activate them. |
+| **Shortcuts** | Search/filter actions, record a key combination, and choose an app or layout. Valid changes save automatically. |
 | **Layouts** | Create, preview, duplicate and edit saved arrangements across displays. |
 | **Displays** | Inspect connected displays and configure automatic monitor profiles. |
 
@@ -88,23 +98,31 @@ To leave an app floating, add it under **General → Floating apps** with the Ap
 ### Automatic, saved layout, or paused
 
 - **Automatic:** eligible visible windows share their current display. Dynamic splits expands neighboring windows as others close.
-- **Saved layout:** only matching windows participate. Fixed layouts preserve your authored rectangles; **Adaptive** layouts redistribute space among their matching visible windows. Applying a layout may launch its apps once; later reflow does not relaunch an app you close.
+- **Saved layout:** each screen uses its selected mode. Automatic tiles includes all eligible local windows; Tile saved apps includes matching apps; Custom positions uses authored rectangles. Horizontal scroll can include saved apps and other eligible local windows. Matching saved apps move to their assigned screens when applied. Closed apps are not launched by a layout containing horizontal scrolling; other saved layouts may launch them once. Reflow does not relaunch an app you close.
 - **Paused:** HyperMac stops scheduling arrangements and hides its borders. A movement already in progress may finish.
 
 ### Create a layout
 
 1. In **Layouts**, choose **New layout**, or arrange your windows manually and use **General → Capture visible windows**.
-2. Add apps from the library and position their rectangles on the monitor canvas. Use **Snap 5%** for alignment.
-3. Enable **Adaptive** if the layout should fill space as its matching windows open and close.
-4. Choose **Preview & apply**, review the current-window preview, then **Save & apply**.
+2. Click a screen card and choose its **Screen mode**. **Automatic tiles** manages all eligible windows; **Tile saved apps** adjusts only matching apps; **Custom positions** uses editable rectangles; **Leave unchanged** skips that screen.
+3. Add apps to that screen from the library. In Custom positions, move or resize their rectangles and use **Snap 5%** for alignment. Select another screen to configure it independently.
+4. Choose **Preview & apply**, review each screen’s mode and planned windows, then **Apply layout**. Matching saved apps move to their assigned screens; unlisted windows remain on their current displays.
 
 A monitor warning beside an app means its assigned display is unavailable. Select a connected display, choose **Use primary display**, or reconnect the original monitor. Primary-display fallback can make fixed rectangles overlap if multiple displays are redirected to one.
 
-**Duplicate** creates an independent draft; save it to keep it. **Undo arrangement / Redo** restores one level of window geometry and leaves tiling paused. It does not undo editor changes, close launched apps, or reopen closed windows. History clears on restart or a new layout application.
+Valid layout edits and duplicates save automatically. **Preview & apply** switches the active arrangement. **Undo arrangement / Redo** restores one level of window geometry. Ordinary geometry restoration pauses tiling; restoring a saved horizontal session resumes its scrolling layout when it is still available. It does not undo editor changes, close launched apps, or reopen closed windows. History clears on restart or a new layout application.
+
+### Horizontal columns
+
+Choose **Horizontal** in Layouts, then click its display card under **Choose a screen** and choose **Screen mode → Horizontal scroll**. Drop a card onto another to stack, or expand **Screen overview** to drag rectangles sideways to reorder and into another rectangle’s lower third to stack. Resize with the corner/column handle or select an app and choose a saved width, including **Full width**.
+
+Each screen has its own app rules, order and groups. Choose each display card and set its **Screen mode** independently: **Horizontal scroll**, **Automatic tiles**, **Tile saved apps**, **Custom positions**, or **Leave unchanged**. New layouts leave every screen unchanged until configured. Other screens keep their own windows. **Neighbor space** reserves room beside wide columns; full width fills the remaining area after these margins and gaps.
+
+Enable **Hyper + scroll** to step through columns with the mouse/trackpad. One gesture advances one column; momentum is ignored. This is discrete navigation, not continuous finger-following scrolling. With monitors beside one another, macOS prevents clipping live windows at their shared edge: navigation currently switches instantly and that edge may not show a neighbor. [Controls and limitations](docs/SCROLLING.md), [upstream design review and remaining work](docs/SCROLLING-DESIGN-REVIEW.md).
 
 ### Automatically switch when docking
 
-In **Displays → Automatic monitor profiles**, connect the desired monitors, add that setup, choose a saved layout, and save. Repeat for your other setups. Profiles match the exact set of connected display IDs and apply at startup or when that set changes. Different docks or display connections may require a new profile.
+In **Displays → Automatic monitor profiles**, connect the desired monitors, add that setup, and choose a saved layout. Valid edits save automatically. Repeat for your other setups. Profiles match the exact set of connected display IDs and apply at startup or when that set changes. Different docks or display connections may require a new profile.
 
 ## Keyboard shortcuts
 
@@ -117,6 +135,7 @@ Defaults adapt Omarchy-style window and app controls to macOS:
 | --- | --- |
 | Base + arrow | Focus a window in that direction |
 | Hyper + arrow | Swap windows in that direction |
+| Hyper + H / L | Focus the previous / next horizontal column |
 | Base + Return | Open a terminal |
 | Hyper + Return or B | Open the default browser |
 | Hyper + F | Open Finder |
@@ -128,7 +147,7 @@ Defaults adapt Omarchy-style window and app controls to macOS:
 | Base + T | Toggle tiling |
 | Base + R | Retile |
 
-The **Shortcuts** tab lists all bindings and lets you change launch targets. Click **Record shortcut**, press your combination, and save. Escape cancels recording. Some macOS or third-party shortcuts can intercept a combination. Key mapping currently follows physical US/ANSI positions; non-US keyboard legends may differ.
+The **Shortcuts** tab lists all bindings and lets you change launch targets. Click the current key combination and press your new combination; valid edits save automatically. Escape cancels recording. Conflicts stay unsaved with an error. Some macOS or third-party shortcuts can intercept a combination. Key mapping currently follows physical US/ANSI positions; non-US keyboard legends may differ.
 
 ## Troubleshooting
 
@@ -169,7 +188,7 @@ The output is `dist/HyperMac.app`. This ad-hoc test bundle is not a notarized re
 
 [GitHub Actions](https://github.com/c0dewars/HyperMac/actions) runs unit tests, lifecycle/geometry regressions, native builds and bundle checks on Apple Silicon. Automated checks do not replace real-window and clean-machine testing.
 
-See [test coverage and limitations](TEST-RESULTS.md), [release readiness](RELEASE-READINESS.md), and [security](SECURITY.md). Native integration, docking, Spaces/fullscreen, performance and distribution validation remain incomplete.
+See [test coverage and limitations](TEST-RESULTS.md), [release readiness](RELEASE-READINESS.md), [remaining fixes](docs/KNOWN-ISSUES.md), and [security](SECURITY.md). Native integration, docking, Spaces/fullscreen, performance and distribution validation remain incomplete.
 
 HyperMac has its own native implementation. Its interaction design is inspired by Omarchy, yabai and JankyBorders; those projects are not bundled or required.
 
