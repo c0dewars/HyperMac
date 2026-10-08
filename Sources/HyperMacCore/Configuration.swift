@@ -37,7 +37,7 @@ public struct Configuration: Codable, Equatable, Sendable {
         mouseResize = try c.decodeIfPresent(Bool.self, forKey: .mouseResize) ?? true
         animationDuration = try c.decodeIfPresent(Double.self, forKey: .animationDuration) ?? 0.18
         excludedBundleIDs = try c.decode([String].self, forKey: .excludedBundleIDs)
-        shortcuts = try c.decode([Shortcut].self, forKey: .shortcuts)
+        shortcuts = try c.decode([MigratedShortcut].self, forKey: .shortcuts).compactMap(\.value)
         layouts = try c.decode([Layout].self, forKey: .layouts)
         // Existing 0.1.0 configurations keep working without a manual migration.
         borderEnabled = try c.decodeIfPresent(Bool.self, forKey: .borderEnabled) ?? true
@@ -82,22 +82,11 @@ public struct Configuration: Codable, Equatable, Sendable {
             guard !layout.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
                 throw ConfigError("A layout needs a name.")
             }
-            guard !layout.placements.isEmpty || layout.scrolling != nil else { throw ConfigError("Layout '\(layout.name)' has no windows.") }
-            if let scroll = layout.scrolling {
-                guard scroll.animationDuration.isFinite, (0...0.5).contains(scroll.animationDuration) else {
-                    throw ConfigError("Scrolling transition must be 0–0.5 seconds.")
-                }
-                guard ["none", "all", "primary", "built-in", "external-1", "external-2"].contains(scroll.display) || (scroll.display.hasPrefix("uuid:") && scroll.display.count > 5) else { throw ConfigError("Unknown scrolling display selector.") }
-                guard scroll.neighborPreview.isFinite, (0...240).contains(scroll.neighborPreview),
-                      scroll.displayModes.allSatisfy({ (["primary", "built-in", "external-1", "external-2"].contains($0.key) || ($0.key.hasPrefix("uuid:") && $0.key.count > 5)) && LayoutScreenMode(rawValue: $0.value) != nil }) else {
-                    throw ConfigError("Neighbor preview must be 0–240 points; each display needs a valid mode.")
-                }
-                guard scroll.width.isFinite, (0.2...1).contains(scroll.width), !layout.adaptive else {
-                    throw ConfigError("Scrolling width must be 20–100%; scrolling and adaptive modes are exclusive.")
-                }
+            guard layout.displayModes.keys.allSatisfy(Displays.validSelector),
+                  layout.displayExcludedBundleIDs.keys.allSatisfy(Displays.validSelector) else {
+                throw ConfigError("Each screen needs a valid display selector.")
             }
             for placement in layout.placements {
-                guard placement.scrollColumn == nil || placement.scrollColumn! >= 0 else { throw ConfigError("Column numbers must be nonnegative.") }
                 guard !placement.bundleID.isEmpty, placement.windowIndex >= 0 else {
                     throw ConfigError("Each placement needs an application bundle ID and a nonnegative window index.")
                 }
@@ -107,8 +96,7 @@ public struct Configuration: Codable, Equatable, Sendable {
                       r.x + r.width <= 1.000001, r.y + r.height <= 1.000001 else {
                     throw ConfigError("Layout '\(layout.name)' has a rectangle outside 0…1 screen proportions.")
                 }
-                guard ["built-in", "primary", "external-1", "external-2"].contains(placement.display)
-                        || (placement.display.hasPrefix("uuid:") && placement.display.count > 5) else {
+                guard Displays.validSelector(placement.display) else {
                     throw ConfigError("Unknown display selector: \(placement.display).")
                 }
             }
@@ -137,7 +125,7 @@ public struct Configuration: Codable, Equatable, Sendable {
                 guard WindowDirection(rawValue: shortcut.target) != nil else { throw ConfigError("Window direction must be left, right, up, or down.") }
             case .resizeWindow:
                 guard ["wider", "narrower", "taller", "shorter"].contains(shortcut.target) else { throw ConfigError("Resize target must be wider, narrower, taller, or shorter.") }
-            case .maximizeWindow, .groupPrevious, .groupNext, .ungroupWindow, .centerColumn: break
+            case .maximizeWindow: break
             case .toggleTiling, .retile: break
             }
         }
@@ -169,15 +157,7 @@ public struct Configuration: Codable, Equatable, Sendable {
             Placement(bundleID: app, display: "primary", frame: Rect(x: Double(index) / 3, y: 0, width: 1.0 / 3, height: 1))
         })
         normal.adaptive = true
-        normal.fallbackToPrimary = true
-        var horizontal = Layout(name: "Horizontal", placements: apps.map { app in
-            Placement(bundleID: app, display: "primary", frame: Rect(x: 0, y: 0, width: 0.5, height: 1))
-        })
-        horizontal.scrolling = ScrollingOptions()
-        horizontal.scrolling?.allWindows = false
-        horizontal.scrolling?.centerFocus = true
-        horizontal.fallbackToPrimary = true
-        return [normal, horizontal]
+        return [normal]
     }
 
     /// Retained only to recognize an untouched pre-Hyper default configuration.
@@ -244,28 +224,48 @@ public struct Configuration: Codable, Equatable, Sendable {
 
 public struct Layout: Codable, Equatable, Sendable {
     public var name: String
-    public var scrolling: ScrollingOptions? = nil
+    public var displayModes: [String: LayoutScreenMode] = [:]
+    public var defaultScreenMode: LayoutScreenMode = .floating
+    public var excludedBundleIDs: [String] = []
+    public var displayExcludedBundleIDs: [String: [String]] = [:]
     public var adaptive = false
     public var fallbackToPrimary = false
     public var applyGap = true
     public var placements: [Placement]
     public init(name: String, placements: [Placement]) { self.name = name; self.placements = placements }
-    private enum CodingKeys: String, CodingKey { case name, placements, fallbackToPrimary, applyGap, adaptive, scrolling }
+    private enum CodingKeys: String, CodingKey { case name, placements, fallbackToPrimary, applyGap, adaptive, displayModes, defaultScreenMode, excludedBundleIDs, displayExcludedBundleIDs }
     public init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         name = try c.decode(String.self, forKey: .name)
         placements = try c.decode([Placement].self, forKey: .placements)
         fallbackToPrimary = try c.decodeIfPresent(Bool.self, forKey: .fallbackToPrimary) ?? false
         applyGap = try c.decodeIfPresent(Bool.self, forKey: .applyGap) ?? true
-        scrolling = try c.decodeIfPresent(ScrollingOptions.self, forKey: .scrolling)
         adaptive = try c.decodeIfPresent(Bool.self, forKey: .adaptive) ?? false
+        displayModes = try c.decodeIfPresent([String: LayoutScreenMode].self, forKey: .displayModes) ?? [:]
+        defaultScreenMode = try c.decodeIfPresent(LayoutScreenMode.self, forKey: .defaultScreenMode) ?? .floating
+        excludedBundleIDs = try c.decodeIfPresent([String].self, forKey: .excludedBundleIDs) ?? []
+        displayExcludedBundleIDs = try c.decodeIfPresent([String: [String]].self, forKey: .displayExcludedBundleIDs) ?? [:]
+        let legacy = try decoder.container(keyedBy: LegacyKeys.self)
+        if let old = try legacy.decodeIfPresent(LegacyScrolling.self, forKey: .scrolling) {
+            // Keep names, screen assignments, app rules and exclusions. Only the
+            // removed transport changes: its windows now fit within their screen.
+            let replacement: LayoutScreenMode = old.allWindows ? .normal : .adaptive
+            adaptive = true
+            defaultScreenMode = old.tileOtherDisplays ? .normal : .floating
+            if old.display == "all" { defaultScreenMode = replacement }
+            else if old.display != "none" { displayModes[old.display] = replacement }
+            for (key, value) in old.displayModes {
+                displayModes[key] = value == "horizontal" ? replacement : LayoutScreenMode(rawValue: value)
+            }
+            excludedBundleIDs = old.excludedBundleIDs
+            displayExcludedBundleIDs = old.displayExcludedBundleIDs
+        }
     }
 
 }
 
 public struct Placement: Codable, Equatable, Sendable {
     public var bundleID: String
-    public var scrollColumn: Int? = nil
     public var titleContains = ""
     public var windowIndex = 0
     public var display: String
@@ -276,7 +276,7 @@ public struct Placement: Codable, Equatable, Sendable {
 }
 
 public enum Action: String, Codable, CaseIterable, Sendable {
-    case launch, layout, toggleTiling, retile, focusWindow, swapWindow, resizeWindow, maximizeWindow, groupPrevious, groupNext, ungroupWindow, centerColumn
+    case launch, layout, toggleTiling, retile, focusWindow, swapWindow, resizeWindow, maximizeWindow
 }
 
 public struct Shortcut: Codable, Equatable, Sendable {
@@ -335,4 +335,37 @@ public struct MonitorProfile: Codable, Equatable, Identifiable, Sendable {
         self.name = name; self.displayIDs = displayIDs.sorted(); self.layoutName = layoutName
     }
     public func matches(_ ids: [String]) -> Bool { enabled && Set(displayIDs) == Set(ids) }
+}
+
+// Decode-only compatibility. New files never encode horizontal layout settings.
+private enum LegacyKeys: String, CodingKey { case scrolling }
+private struct LegacyScrolling: Decodable {
+    var display: String
+    var allWindows: Bool
+    var tileOtherDisplays: Bool
+    var displayModes: [String: String]
+    var excludedBundleIDs: [String]
+    var displayExcludedBundleIDs: [String: [String]]
+    enum CodingKeys: String, CodingKey { case display, allWindows, tileOtherDisplays, displayModes, excludedBundleIDs, displayExcludedBundleIDs }
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        display = try c.decodeIfPresent(String.self, forKey: .display) ?? "primary"
+        allWindows = try c.decodeIfPresent(Bool.self, forKey: .allWindows) ?? true
+        tileOtherDisplays = try c.decodeIfPresent(Bool.self, forKey: .tileOtherDisplays) ?? true
+        displayModes = try c.decodeIfPresent([String: String].self, forKey: .displayModes) ?? [:]
+        excludedBundleIDs = try c.decodeIfPresent([String].self, forKey: .excludedBundleIDs) ?? []
+        displayExcludedBundleIDs = try c.decodeIfPresent([String: [String]].self, forKey: .displayExcludedBundleIDs) ?? [:]
+        guard displayModes.values.allSatisfy({ $0 == "horizontal" || LayoutScreenMode(rawValue: $0) != nil }) else {
+            throw ConfigError("Unrecognized mode in the previous configuration.")
+        }
+    }
+}
+private struct MigratedShortcut: Decodable {
+    let value: Shortcut?
+    enum CodingKeys: String, CodingKey { case action }
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        let action = try c.decode(String.self, forKey: .action)
+        value = ["groupPrevious", "groupNext", "ungroupWindow", "centerColumn"].contains(action) ? nil : try Shortcut(from: decoder)
+    }
 }

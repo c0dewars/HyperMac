@@ -6,13 +6,13 @@ public struct LayoutAssignmentPlan: Sendable {
     public var destinations: [Int: String] = [:]
     public var matches: [Int: Int] = [:]
     public var messages: [String] = []
+    public var missingWindows = false
 }
 
 public enum LayoutAssignments {
     public static func plan(_ layout: Layout, windows: [WindowDescriptor], displays: [Display]) -> LayoutAssignmentPlan {
         var result = LayoutAssignmentPlan()
         let windows = windows.sorted { $0.id < $1.id }
-        let horizontal = Set(ScrollingSession.targets(layout: layout, displays: displays).map(\.id))
         var targets: [Int: Display] = [:]
         for (index, rule) in layout.placements.enumerated() {
             guard let screen = Displays.resolve(rule.display, in: displays, fallback: layout.fallbackToPrimary) else {
@@ -21,11 +21,7 @@ public enum LayoutAssignments {
             }
             let mode = LayoutScreens.mode(on: screen, layout: layout, displays: displays)
             guard mode != .floating, mode != .normal else { continue }
-            if mode == .horizontal {
-                guard horizontal.contains(screen.id) else { continue }
-                let options = layout.scrolling!
-                guard !(options.excludedBundleIDs + (options.displayExcludedBundleIDs["uuid:" + screen.id] ?? [])).contains(rule.bundleID) else { continue }
-            }
+            guard !LayoutScreens.exclusions(on: screen, layout: layout, displays: displays).contains(rule.bundleID) else { continue }
             targets[index] = screen
         }
         func candidates(_ rule: Placement) -> [WindowDescriptor] {
@@ -60,6 +56,7 @@ public enum LayoutAssignments {
                 Displays.containing($0.frame, in: displays)?.id != screen.id }
             let offset = rule.windowIndex - local.count
             guard available.indices.contains(offset) else {
+                result.missingWindows = true
                 result.messages.append("No matching open window for \(rule.bundleID) on \(screen.name).")
                 continue
             }

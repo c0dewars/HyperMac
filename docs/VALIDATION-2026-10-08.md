@@ -1,3 +1,5 @@
+> Historical reference: horizontal scrolling was removed in 0.8.0. This document describes the previous implementation.
+
 # Live validation — 8 October 2026
 
 **Result: not ready for a stable release.** Build 26 passes many final-placement and lifecycle checks, but smooth horizontal transitions on the connected laptop/Odyssey arrangement do not meet the requested behavior. A seven-app test also reproduced a native sizing failure.

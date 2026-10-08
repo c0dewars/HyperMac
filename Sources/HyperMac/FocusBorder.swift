@@ -5,11 +5,13 @@ import HyperMacCore
 @MainActor
 final class FocusBorder {
     private let probe = Accessibility()
-    private var parkedNumbers: Set<Int> = []
-    func setParkedWindows(_ numbers: Set<Int>) {
-        guard numbers != parkedNumbers else { return }
-        parkedNumbers = numbers
-        for (id, panel) in panels where owners[id].map({ numbers.contains($0) }) == true { panel.orderOut(nil); blurPanels[id]?.orderOut(nil) }
+    private var managedNumbers: Set<Int> = []
+    func setManagedWindows(_ numbers: Set<Int>) {
+        guard numbers != managedNumbers else { return }
+        managedNumbers = numbers; generation += 1
+        for (id, panel) in panels where owners[id].map({ !numbers.contains($0) }) == true {
+            panel.orderOut(nil); blurPanels[id]?.orderOut(nil)
+        }
         schedule()
     }
     private var config = Configuration()
@@ -120,7 +122,7 @@ final class FocusBorder {
         guard version == generation, active, effectsEnabled else { return }
         if let app = NSWorkspace.shared.frontmostApplication,
            let focused = await probe.focused(pid: app.processIdentifier) {
-            focusedNumber = snapshot.windows.first(where: { CFEqual($0.element, focused.element) })?.windowNumber
+            focusedNumber = snapshot.windows.first(where: { CFEqual($0.element, focused.element) && $0.windowNumber.map { managedNumbers.contains($0) } == true })?.windowNumber
         } else { focusedNumber = nil }
         guard version == generation, active else { return }
         synchronize(snapshot.windows)
@@ -134,7 +136,7 @@ final class FocusBorder {
         let top = NSScreen.screens.first?.frame.maxY ?? 0
         for window in snapshot.windows {
             let id = window.descriptor.id
-            guard let number = window.windowNumber, !parkedNumbers.contains(number),
+            guard let number = window.windowNumber, managedNumbers.contains(number),
                   let stackIndex = stack.firstIndex(where: { $0.number == number }) else {
                 panels[id]?.orderOut(nil); blurPanels[id]?.orderOut(nil)
                 continue
@@ -186,7 +188,7 @@ final class FocusBorder {
         let stack = visibleStack()
         let top = NSScreen.screens.first?.frame.maxY ?? 0
         for (id, panel) in panels {
-            guard let number = owners[id], !parkedNumbers.contains(number), let owner = stack.first(where: { $0.number == number }) else {
+            guard let number = owners[id], managedNumbers.contains(number), let owner = stack.first(where: { $0.number == number }) else {
                 panel.orderOut(nil); blurPanels[id]?.orderOut(nil); continue
             }
             update(panel, owner: owner.frame, number: number, top: top, reorder: !panel.isVisible)
@@ -219,7 +221,7 @@ final class FocusBorder {
 
     private func updateBlur(id: Int, owner: CGRect, number: Int, top: CGFloat, reorder: Bool = true) {
         guard config.blurUnfocusedWindows, config.blurIntensity > 0, focusedNumber != nil, focusedNumber != number,
-              !parkedNumbers.contains(number), !NSWorkspace.shared.accessibilityDisplayShouldReduceTransparency else {
+              managedNumbers.contains(number), !NSWorkspace.shared.accessibilityDisplayShouldReduceTransparency else {
             blurPanels[id]?.orderOut(nil); return
         }
         let panel: BorderPanel

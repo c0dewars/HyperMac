@@ -20,8 +20,8 @@ jobs:
         run: |
           swiftc Sources/HyperMacCore/*.swift scripts/check-shortcuts.swift -o "$RUNNER_TEMP/hypermac-checks"
           "$RUNNER_TEMP/hypermac-checks"
-          swiftc Sources/HyperMacCore/*.swift scripts/check-scrolling.swift -o "$RUNNER_TEMP/hypermac-scroll-checks"
-          "$RUNNER_TEMP/hypermac-scroll-checks"
+          swiftc Sources/HyperMacCore/*.swift scripts/check-layouts.swift -o "$RUNNER_TEMP/hypermac-layout-checks"
+          "$RUNNER_TEMP/hypermac-layout-checks"
       - name: Verify test bundle
         run: |
           codesign --verify --strict dist/HyperMac.app

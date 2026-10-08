@@ -34,7 +34,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         do { configuration = try store.load() }
         catch { startupError = "Configuration was not loaded: \(error.localizedDescription)" }
         engine = Engine(config: configuration)
-        engine.onParkedWindows = { [weak self] numbers in self?.focusBorder.setParkedWindows(numbers) }
+        engine.onManagedWindows = { [weak self] numbers in self?.focusBorder.setManagedWindows(numbers) }
         engine.onTransition = { [weak self] active in self?.focusBorder.setTransitioning(active) }
         engine.onModeChange = { [weak self] active in self?.focusBorder.setActive(active) }
         engine.onStatus = { [weak self] status in
@@ -53,20 +53,41 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             catch { self.status = "Config rejected: \(error.localizedDescription)"; self.rebuildMenu() }
         }
         store.startWatching()
-        engine.start()
+        engine.start(paused: startupError != nil || CommandLine.arguments.contains("--paused"))
         focusBorder.start(config: configuration)
         focusBorder.setActive(engine.mode != .paused)
         rebuildMenu()
-        // Standard edit menu allows Cmd+C/V/X/A in the native settings window.
+        installMainMenu()
+        if !AXIsProcessTrusted() { _ = Accessibility.requestPermission(); showSettings() }
+        if let startupError { showError(startupError) }
+    }
+
+    private func installMainMenu() {
         let main = NSMenu()
+        // AppKit treats the first submenu as the application menu. Keep it
+        // separate from Edit so native app shortcuts work in every settings tab.
+        let applicationItem = NSMenuItem(title: "HyperMac", action: nil, keyEquivalent: "")
+        let applicationMenu = NSMenu(title: "HyperMac")
+        add("Settings…", action: #selector(showSettings), key: ",", to: applicationMenu)
+        applicationMenu.addItem(.separator())
+        add("Quit HyperMac", action: #selector(quit), key: "q", to: applicationMenu)
+        applicationItem.submenu = applicationMenu
+        main.addItem(applicationItem)
+        // Standard edit menu allows Cmd+C/V/X/A in the native settings window.
         let editItem = NSMenuItem(title: "Edit", action: nil, keyEquivalent: "")
         let edit = NSMenu(title: "Edit")
         for (title, action, key) in [("Cut", "cut:", "x"), ("Copy", "copy:", "c"), ("Paste", "paste:", "v"), ("Select All", "selectAll:", "a")] {
             edit.addItem(withTitle: title, action: Selector(action), keyEquivalent: key)
         }
-        editItem.submenu = edit; main.addItem(editItem); NSApp.mainMenu = main
-        if !AXIsProcessTrusted() { _ = Accessibility.requestPermission(); showSettings() }
-        if let startupError { showError(startupError) }
+        editItem.submenu = edit; main.addItem(editItem)
+        let windowItem = NSMenuItem(title: "Window", action: nil, keyEquivalent: "")
+        let windows = NSMenu(title: "Window")
+        windows.addItem(withTitle: "Close Window", action: #selector(NSWindow.performClose(_:)), keyEquivalent: "w")
+        windows.addItem(withTitle: "Minimize", action: #selector(NSWindow.performMiniaturize(_:)), keyEquivalent: "m")
+        windows.addItem(withTitle: "Zoom", action: #selector(NSWindow.performZoom(_:)), keyEquivalent: "")
+        windowItem.submenu = windows; main.addItem(windowItem)
+        NSApp.windowsMenu = windows
+        NSApp.mainMenu = main
     }
 
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
@@ -102,15 +123,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let row = NSMenuItem(title: "Apply layout", action: nil, keyEquivalent: "")
         row.submenu = layouts; menu.addItem(row)
         menu.addItem(.separator())
-        add("Settings & capture…", action: #selector(showSettings), to: menu)
+        add("Settings…", action: #selector(showSettings), key: ",", to: menu)
         add("Reload configuration", action: #selector(reload), to: menu)
         add("Copy troubleshooting report", action: #selector(copyDiagnostics), to: menu)
-        add("Quit HyperMac", action: #selector(quit), to: menu)
+        add("Quit HyperMac", action: #selector(quit), key: "q", to: menu)
         statusItem.menu = menu
     }
 
-    private func add(_ title: String, action: Selector, to menu: NSMenu) {
-        let item = NSMenuItem(title: title, action: action, keyEquivalent: "")
+    private func add(_ title: String, action: Selector, key: String = "", to menu: NSMenu) {
+        let item = NSMenuItem(title: title, action: action, keyEquivalent: key)
+        item.keyEquivalentModifierMask = .command
         item.target = self; menu.addItem(item)
     }
 
@@ -145,14 +167,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 diagnostics: { [unowned self] in self.copyDiagnostics() })
             model.readDiagnostics = { [weak self] in self?.engine.diagnosticReport ?? "" }
             model.runtimeStatus = status
-            model.navigateScrolling = { [weak self] name, direction, displayID in
-                guard let self else { return }
-                guard self.engine.mode == .layout(name) else {
-                    self.settingsWindow?.model.message = "Apply this horizontal layout before navigating its columns."
-                    return
-                }
-                self.engine.navigateScrolling(direction, displayID: displayID)
-            }
             settingsWindow = SettingsWindow(model: model)
             settingsWindow?.onClose = { [weak self] in self?.settingsWindow = nil }
         }

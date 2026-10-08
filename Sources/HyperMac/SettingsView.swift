@@ -28,7 +28,6 @@ final class SettingsModel: ObservableObject {
     let pauseAction: () -> Void
     let copyDiagnostics: () -> Void
     var readDiagnostics: () -> String = { "" }
-    var navigateScrolling: (String, String, String?) -> Void = { _, _, _ in }
     let configURL: URL
 
     init(config: Configuration, url: URL, original: @escaping () -> Configuration,
@@ -94,7 +93,7 @@ final class SettingsModel: ObservableObject {
                 }
                 let layout = try await captureAction(name)
                 draft.layouts.append(layout)
-                message = "Captured. Review the Layouts tab to arrange windows. Capture pauses tiling."
+                message = "Captured. Review and apply the arrangement in Layouts."
             } catch { message = error.localizedDescription }
         }
     }
@@ -114,7 +113,7 @@ final class SettingsUIState: ObservableObject {
 struct SettingsView: View {
     @ObservedObject var model: SettingsModel
 
-    @StateObject private var ui = SettingsUIState()
+    @ObservedObject var ui: SettingsUIState
     private var section: String {
         get { ui.section }
         nonmutating set { ui.section = newValue }
@@ -123,34 +122,8 @@ struct SettingsView: View {
         get { ui.showDetails }
         nonmutating set { ui.showDetails = newValue }
     }
-    private let sections = [("General", "slider.horizontal.3"), ("Shortcuts", "keyboard"),
-                            ("Layouts", "rectangle.split.3x1"), ("Displays", "display.2")]
-
     var body: some View {
         VStack(spacing: 0) {
-            HStack(spacing: 16) {
-                HStack(spacing: 8) {
-                    Image(nsImage: NSWorkspace.shared.icon(forFile: Bundle.main.bundlePath))
-                        .resizable().frame(width: 32, height: 32)
-                    Text("HyperMac").font(.headline)
-                }
-                Spacer(minLength: 0)
-                HStack(spacing: 4) {
-                    ForEach(sections, id: \.0) { name, symbol in
-                        Button { section = name } label: {
-                            Label(name, systemImage: symbol)
-                                .font(.callout.weight(section == name ? .semibold : .regular))
-                                .padding(.horizontal, 12).padding(.vertical, 9)
-                                .foregroundStyle(section == name ? AppTheme.cyan : Color.secondary)
-                                .background(section == name ? AppTheme.cyan.opacity(0.12) : .clear,
-                                            in: RoundedRectangle(cornerRadius: 9))
-                        }.buttonStyle(.plain).accessibilityAddTraits(section == name ? .isSelected : [])
-                    }
-                }
-                Text(Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "")
-                    .font(.caption.monospacedDigit()).foregroundStyle(.secondary)
-            }.padding(.horizontal, 20).padding(.vertical, 12)
-            Divider()
             Group {
                 switch section {
                 case "Shortcuts": shortcuts
@@ -167,7 +140,7 @@ struct SettingsView: View {
                         .font(.callout).lineLimit(2).textSelection(.enabled)
                     Spacer()
                     Button(showDetails ? "Hide details" : "Details") { showDetails.toggle() }
-                        .buttonStyle(.plain).foregroundStyle(.secondary)
+                        .buttonStyle(.bordered)
                 }
                 if showDetails {
                     ScrollView { Text(model.runtimeStatus).font(.caption).textSelection(.enabled)
@@ -195,11 +168,15 @@ struct SettingsView: View {
         }
         .tint(AppTheme.cyan)
         .background(Color(nsColor: .windowBackgroundColor))
-        .frame(minWidth: 820, minHeight: 620)
+        .buttonStyle(.bordered)
+        .controlSize(.large)
+        .onReceive(NotificationCenter.default.publisher(for: NSApplication.didChangeScreenParametersNotification)) { _ in
+            model.displays = ScreenCatalog.current()
+        }
         .sheet(isPresented: $ui.showReport) {
             VStack(alignment: .leading, spacing: 16) {
                 Text("Troubleshooting report").font(.title2.bold())
-                Text("Window identities, placement and navigation timing. Document titles are omitted.")
+                Text("Window identities, placement results and timing. Document titles are omitted.")
                     .font(.caption).foregroundStyle(.secondary)
                 ScrollView { Text(ui.report).font(.system(.caption, design: .monospaced))
                     .textSelection(.enabled).frame(maxWidth: .infinity, alignment: .leading) }
@@ -222,8 +199,8 @@ struct SettingsView: View {
                     Button("Copy troubleshooting report") { model.copyDiagnostics() }
                 }
                 Toggle("Start automatic tiling when HyperMac launches", isOn: $model.draft.automaticTiling)
-                Toggle("Mouse resizing adjusts tiles and scrolling columns", isOn: $model.draft.mouseResize)
-                Text("Drag a window edge or corner in Dynamic splits or horizontal scrolling. Neighbors adjust when you release the mouse.").font(.caption).foregroundStyle(.secondary)
+                Toggle("Resize neighboring tiles with the mouse", isOn: $model.draft.mouseResize)
+                Text("In Tile all windows with Dynamic splits, drag a window edge or corner. Neighbors adjust when you release the mouse.").font(.caption).foregroundStyle(.secondary)
                 Picker("Tiling algorithm", selection: $model.draft.algorithm) {
                     Text("Dynamic splits (BSP)").tag(TileAlgorithm.bsp)
                     Text("Adaptive grid").tag(TileAlgorithm.adaptive)
@@ -243,7 +220,7 @@ struct SettingsView: View {
                 }
                 Text("Smooth transitions respect macOS Reduce Motion. Set to Off for instant placement.")
                     .foregroundStyle(.secondary)
-                Text("Applying a saved layout switches out of automatic tiling. Use Toggle tiling or Retile to return.")
+                Text("A saved layout controls each display separately. Tile now returns all displays to automatic tiling.")
                     .foregroundStyle(.secondary)
             }
             Section("Tiled-window borders") {
@@ -268,13 +245,13 @@ struct SettingsView: View {
                     Slider(value: $model.draft.borderWidth, in: 1...10, step: 1)
                     Text("\(Int(model.draft.borderWidth)) pt").monospacedDigit()
                 }
-                Text("The border uses each app’s custom color, falling back to the default below. Optional blur applies to unfocused windows across active layouts and tiling, including centered scrolling. Effects disappear when paused or an ignored app is focused. Blur respects Reduce Transparency.")
+                Text("App colors set in Layouts override the default border color. Effects disappear when paused or an ignored app is focused. Blur respects Reduce Transparency.")
                     .foregroundStyle(.secondary)
             }
             Section("Capture your arrangement") {
                 TextField("Layout name", text: $model.captureName)
                 Button("Capture visible windows") { model.capture() }
-                Text("Capture stores display IDs and window-title rules. Change them to portable display roles or shorter title rules in Layouts.")
+                Text("Capture remembers each display and window’s position. You can edit the arrangement and window matching in Layouts.")
                     .foregroundStyle(.secondary)
             }
             Section("Floating apps · ignored by tiling") {
@@ -295,6 +272,16 @@ struct SettingsView: View {
                 Text("HyperMac's own settings, dialogs and native fullscreen windows are always left alone. Changes save automatically.")
                     .font(.caption).foregroundStyle(.secondary)
             }
+            Section("About HyperMac") {
+                HStack(spacing: 12) {
+                    Image(nsImage: NSWorkspace.shared.icon(forFile: Bundle.main.bundlePath)).resizable().frame(width: 48, height: 48)
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("HyperMac").font(.headline)
+                        Text("Version " + (Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? ""))
+                            .font(.caption).foregroundStyle(.secondary)
+                    }
+                }
+            }
             Section("Permissions") {
                 Button("Request Accessibility access") { _ = Accessibility.requestPermission() }
                 HStack {
@@ -314,6 +301,18 @@ struct SettingsView: View {
         }.formStyle(.grouped)
     }
 
+    private func matchesShortcut(_ shortcut: Shortcut) -> Bool {
+        let category = shortcut.action == .launch ? "Apps" : shortcut.action == .layout ? "Layouts" : "Windows"
+        return (ui.shortcutCategory == "All" || ui.shortcutCategory == category) &&
+            (model.shortcutSearch.isEmpty || "\(shortcut.friendlyTitle) \(shortcut.target) \(shortcut.key)".localizedCaseInsensitiveContains(model.shortcutSearch))
+    }
+
+    private func shortcutBinding(_ index: Int) -> Binding<Shortcut> {
+        let saved = model.draft.shortcuts[index]
+        return Binding(get: { model.draft.shortcuts.indices.contains(index) ? model.draft.shortcuts[index] : saved },
+                       set: { if model.draft.shortcuts.indices.contains(index) { model.draft.shortcuts[index] = $0 } })
+    }
+
     private var shortcuts: some View {
         VStack(alignment: .leading, spacing: 16) {
             HStack {
@@ -325,7 +324,7 @@ struct SettingsView: View {
                 Spacer()
                 Menu {
                     Button("Window action…") {
-                        model.draft.shortcuts.append(Shortcut(key: "", modifiers: ["ctrl", "alt", "cmd", "shift"], action: .groupPrevious))
+                        model.draft.shortcuts.append(Shortcut(key: "", modifiers: ["ctrl", "alt", "cmd", "shift"], action: .focusWindow, target: "left"))
                         ui.shortcutCategory = "All"; model.shortcutSearch = ""
                     }
                     Button("Application…") {
@@ -340,20 +339,27 @@ struct SettingsView: View {
             }
             HStack {
                 Image(systemName: "magnifyingglass").foregroundStyle(.secondary)
-                TextField("Search actions, apps or keys", text: $model.shortcutSearch).textFieldStyle(.plain)
+                TextField("Search actions, apps or keys", text: $model.shortcutSearch).textFieldStyle(.plain).accessibilityLabel("Search shortcuts")
                 Picker("Filter", selection: $ui.shortcutCategory) {
                     ForEach(["All", "Windows", "Apps", "Layouts"], id: \.self) { Text($0).tag($0) }
                 }.labelsHidden().pickerStyle(.segmented).frame(width: 300)
             }.padding(10).background(.quaternary.opacity(0.35), in: RoundedRectangle(cornerRadius: 10))
             ScrollView {
                 LazyVStack(spacing: 8) {
+                    if !model.draft.shortcuts.contains(where: matchesShortcut) {
+                        VStack(spacing: 8) {
+                            Image(systemName: "keyboard").font(.largeTitle)
+                            Text("No matching shortcuts").font(.headline)
+                            Text("Try another search or add a shortcut.")
+                        }.foregroundStyle(.secondary).frame(maxWidth: .infinity).padding(40)
+                    }
                     ForEach(model.draft.shortcuts.indices, id: \.self) { index in
                         let shortcut = model.draft.shortcuts[index]
                         let category = shortcut.action == .launch ? "Apps" : shortcut.action == .layout ? "Layouts" : "Windows"
                         if (ui.shortcutCategory == "All" || ui.shortcutCategory == category) &&
                             (model.shortcutSearch.isEmpty || "\(shortcut.friendlyTitle) \(shortcut.target) \(shortcut.key)".localizedCaseInsensitiveContains(model.shortcutSearch)) {
-                            ShortcutEditor(shortcut: $model.draft.shortcuts[index], layouts: model.draft.layouts.map(\.name)) {
-                                model.draft.shortcuts.remove(at: index)
+                            ShortcutEditor(shortcut: shortcutBinding(index), layouts: model.draft.layouts.map(\.name)) {
+                                if model.draft.shortcuts.indices.contains(index) { model.draft.shortcuts.remove(at: index) }
                             }
                         }
                     }
@@ -375,6 +381,11 @@ struct SettingsView: View {
         LayoutDesigner(model: model)
     }
 
+    private func profileBinding(_ index: Int) -> Binding<MonitorProfile> {
+        let saved = model.draft.monitorProfiles[index]
+        return Binding(get: { model.draft.monitorProfiles.indices.contains(index) ? model.draft.monitorProfiles[index] : saved },
+                       set: { if model.draft.monitorProfiles.indices.contains(index) { model.draft.monitorProfiles[index] = $0 } })
+    }
     private var displays: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
@@ -385,12 +396,12 @@ struct SettingsView: View {
                         ForEach(model.draft.monitorProfiles.indices, id: \.self) { i in
                             VStack(alignment: .leading) {
                                 HStack {
-                                    Toggle("Enabled", isOn: $model.draft.monitorProfiles[i].enabled)
-                                    TextField("Profile name", text: $model.draft.monitorProfiles[i].name)
-                                    Picker("Layout", selection: $model.draft.monitorProfiles[i].layoutName) {
+                                    Toggle("Enabled", isOn: profileBinding(i).enabled)
+                                    TextField("Profile name", text: profileBinding(i).name)
+                                    Picker("Layout", selection: profileBinding(i).layoutName) {
                                         ForEach(model.draft.layouts, id: \.name) { Text($0.name).tag($0.name) }
                                     }
-                                    Button("Remove") { model.draft.monitorProfiles.remove(at: i) }
+                                    Button("Remove") { if model.draft.monitorProfiles.indices.contains(i) { model.draft.monitorProfiles.remove(at: i) } }
                                 }
                                 Text("\(model.draft.monitorProfiles[i].displayIDs.count) displays · " +
                                     (model.draft.monitorProfiles[i].matches(model.displays.map(\.id)) ? "Matches now" : "Not active"))
@@ -401,7 +412,7 @@ struct SettingsView: View {
                             guard let layout = model.draft.layouts.first else { return }
                             model.draft.monitorProfiles.append(MonitorProfile(name: "Setup \(model.draft.monitorProfiles.count + 1)",
                                 displayIDs: model.displays.map(\.id), layoutName: layout.name))
-                        }.disabled(model.draft.layouts.isEmpty || model.displays.isEmpty)
+                        }.disabled(model.draft.layouts.isEmpty || model.displays.isEmpty || model.draft.monitorProfiles.contains { Set($0.displayIDs) == Set(model.displays.map(\.id)) })
                         Text("Profiles save automatically. Create a separate profile while each monitor setup is connected.").font(.caption)
                     }.padding(8)
                 }
@@ -434,10 +445,6 @@ private extension Shortcut {
         case .maximizeWindow: return "Maximize / restore"
         case .toggleTiling: return "Pause / resume tiling"
         case .retile: return "Arrange windows"
-        case .groupPrevious: return "Stack in previous column"
-        case .groupNext: return "Stack in next column"
-        case .ungroupWindow: return "Separate into a column"
-        case .centerColumn: return "Center focused column"
         }
     }
 }
@@ -459,10 +466,10 @@ private struct ShortcutEditor: View {
                 Text(shortcut.friendlyTitle).font(.callout.weight(.medium))
                 Spacer()
                 ShortcutRecorder(shortcut: $shortcut).frame(width: 190, height: 30)
-                Button { expanded.toggle() } label: { Image(systemName: expanded ? "chevron.up" : "slider.horizontal.3") }
-                    .buttonStyle(.plain).help("Edit action")
-                Button(role: .destructive, action: remove) { Image(systemName: "trash") }
-                    .buttonStyle(.plain).help("Remove shortcut")
+                Button { expanded.toggle() } label: { Image(systemName: expanded ? "chevron.up" : "slider.horizontal.3").frame(width: 24, height: 24) }
+                    .buttonStyle(.bordered).help("Edit action").accessibilityLabel("Edit action")
+                Button(role: .destructive, action: remove) { Image(systemName: "trash").frame(width: 24, height: 24) }
+                    .buttonStyle(.bordered).help("Remove shortcut").accessibilityLabel("Remove shortcut")
             }
             if expanded {
                 Divider()
@@ -472,10 +479,6 @@ private struct ShortcutEditor: View {
                         Text("Apply layout").tag(Action.layout)
                         Text("Pause / resume tiling").tag(Action.toggleTiling)
                         Text("Arrange windows").tag(Action.retile)
-                        Text("Stack in previous column").tag(Action.groupPrevious)
-                        Text("Stack in next column").tag(Action.groupNext)
-                        Text("Separate into a column").tag(Action.ungroupWindow)
-                        Text("Center column").tag(Action.centerColumn)
                         Text("Focus window").tag(Action.focusWindow)
                         Text("Move window").tag(Action.swapWindow)
                         Text("Resize window").tag(Action.resizeWindow)
@@ -512,58 +515,100 @@ private struct ShortcutEditor: View {
 @MainActor
 struct PlacementEditor: View {
     @Binding var placement: Placement
-    var remove: () -> Void
+    let displays: [Display]
+    var editCoordinates = true
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack {
-                TextField("App bundle ID", text: $placement.bundleID)
-                TextField("Display role or uuid:…", text: $placement.display)
-                Button("Remove", role: .destructive, action: remove)
+        VStack(alignment: .leading, spacing: 12) {
+            Picker("Display", selection: $placement.display) {
+                ForEach(displays) { Text($0.name + " · this display").tag("uuid:" + $0.id) }
+                Text("Primary display · follows macOS").tag("primary")
+                Text("Built-in display").tag("built-in")
+                ForEach(1...max(1, displays.filter { !$0.builtIn }.count), id: \.self) { Text("External display \($0) · by position").tag("external-\($0)") }
+                if Displays.resolve(placement.display, in: displays, fallback: false) == nil,
+                   !["primary", "built-in", "external-1"].contains(placement.display) {
+                    Text("Disconnected display").tag(placement.display)
+                }
             }
-            HStack {
-                TextField("Title contains (optional)", text: $placement.titleContains)
-                Text("Window index")
-                TextField("0", value: $placement.windowIndex, format: .number).frame(width: 50)
+            TextField("Window title contains", text: $placement.titleContains, prompt: Text("Optional"))
+            Stepper("Window \(placement.windowIndex + 1) on this display", value: $placement.windowIndex, in: 0...99)
+            if editCoordinates {
+                HStack {
+                    percent("X", $placement.frame.x)
+                    percent("Y", $placement.frame.y)
+                    percent("Width", $placement.frame.width)
+                    percent("Height", $placement.frame.height)
+                }
             }
-            HStack {
-                percent("X", $placement.frame.x)
-                percent("Y", $placement.frame.y)
-                percent("Width", $placement.frame.width)
-                percent("Height", $placement.frame.height)
-            }
-        }
+        }.textFieldStyle(.roundedBorder)
     }
     private func percent(_ label: String, _ value: Binding<Double>) -> some View {
-        HStack {
+        HStack(spacing: 4) {
             Text(label)
             TextField("%", value: Binding(get: { value.wrappedValue * 100 }, set: { value.wrappedValue = $0 / 100 }), format: .number)
-                .frame(width: 65)
+                .frame(width: 55).accessibilityLabel(label + " percent")
             Text("%")
         }
     }
 }
 
 @MainActor
-final class SettingsWindow: NSWindowController, NSWindowDelegate {
+final class SettingsWindow: NSWindowController, NSWindowDelegate, NSToolbarDelegate {
     var onClose: (() -> Void)?
     let model: SettingsModel
+    private let ui = SettingsUIState()
+    private let sections = [("General", "slider.horizontal.3"), ("Shortcuts", "keyboard"),
+                            ("Layouts", "rectangle.split.2x2"), ("Displays", "display.2")]
     init(model: SettingsModel) {
         self.model = model
-        let available = NSScreen.main?.visibleFrame.size ?? NSSize(width: 1200, height: 900)
+        let available = NSScreen.main?.visibleFrame.size ?? NSSize(width: 1440, height: 1000)
         let window = NSWindow(contentRect: NSRect(x: 0, y: 0,
-            width: max(820, min(1080, available.width - 48)),
-            height: max(620, min(820, available.height - 100))),
+            width: min(1360, available.width - 48), height: min(940, available.height - 110)),
             styleMask: [.titled, .closable, .miniaturizable, .resizable], backing: .buffered, defer: false)
         window.title = "HyperMac Settings"
-        window.contentMinSize = NSSize(width: 820, height: 620)
-        window.titlebarAppearsTransparent = false
-        window.contentViewController = NSHostingController(rootView: SettingsView(model: model))
+        window.contentMinSize = NSSize(width: min(980, available.width - 48), height: min(680, available.height - 110))
+        window.toolbarStyle = .preference
+        window.contentViewController = NSHostingController(rootView: SettingsView(model: model, ui: ui))
         window.isReleasedWhenClosed = false
         super.init(window: window)
+        let toolbar = NSToolbar(identifier: "HyperMacSettings")
+        toolbar.delegate = self
+        toolbar.allowsUserCustomization = false
+        toolbar.displayMode = .iconAndLabel
+        toolbar.selectedItemIdentifier = NSToolbarItem.Identifier("General")
+        window.toolbar = toolbar
         window.delegate = self
+        // Hosting the SwiftUI form changes AppKit's initial fitting size. Apply
+        // our larger default after attaching it, then honor the user's saved size.
+        window.setContentSize(NSSize(width: min(1360, available.width - 48), height: min(940, available.height - 110)))
         window.center()
+        window.setFrameAutosaveName("HyperMacNormalSettingsV2")
     }
     required init?(coder: NSCoder) { fatalError("Not supported") }
-    func windowShouldClose(_ sender: NSWindow) -> Bool { model.save() }
+    func toolbarAllowedItemIdentifiers(_ toolbar: NSToolbar) -> [NSToolbarItem.Identifier] {
+        sections.map { NSToolbarItem.Identifier($0.0) }
+    }
+    func toolbarDefaultItemIdentifiers(_ toolbar: NSToolbar) -> [NSToolbarItem.Identifier] { toolbarAllowedItemIdentifiers(toolbar) }
+    func toolbarSelectableItemIdentifiers(_ toolbar: NSToolbar) -> [NSToolbarItem.Identifier] { toolbarAllowedItemIdentifiers(toolbar) }
+    func toolbar(_ toolbar: NSToolbar, itemForItemIdentifier id: NSToolbarItem.Identifier, willBeInsertedIntoToolbar flag: Bool) -> NSToolbarItem? {
+        guard let section = sections.first(where: { $0.0 == id.rawValue }) else { return nil }
+        let item = NSToolbarItem(itemIdentifier: id)
+        item.label = section.0
+        item.image = NSImage(systemSymbolName: section.1, accessibilityDescription: section.0)
+        item.target = self; item.action = #selector(selectSection(_:))
+        return item
+    }
+    @objc private func selectSection(_ sender: NSToolbarItem) {
+        ui.section = sender.itemIdentifier.rawValue
+        window?.toolbar?.selectedItemIdentifier = sender.itemIdentifier
+    }
+    func windowShouldClose(_ sender: NSWindow) -> Bool {
+        if model.save() { return true }
+        let alert = NSAlert()
+        alert.messageText = "Some changes couldn’t be saved"
+        alert.informativeText = model.message
+        alert.addButton(withTitle: "Keep Editing")
+        alert.addButton(withTitle: "Discard Changes")
+        return alert.runModal() == .alertSecondButtonReturn
+    }
     func windowWillClose(_ notification: Notification) { onClose?() }
 }

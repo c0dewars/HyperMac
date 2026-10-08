@@ -58,15 +58,35 @@ public enum Displays {
         switch selector {
         case "built-in": found = displays.first { $0.builtIn }
         case "primary": found = displays.first { $0.primary }
-        case "external-1": found = externals.first
-        case "external-2": found = externals.count > 1 ? externals[1] : nil
-        default: found = displays.first { "uuid:" + $0.id == selector }
+        default:
+            if selector.hasPrefix("external-"), let number = Int(selector.dropFirst(9)), externals.indices.contains(number - 1) {
+                found = externals[number - 1]
+            } else { found = displays.first { "uuid:" + $0.id == selector } }
         }
         return found ?? (fallback ? displays.first { $0.primary } ?? displays.first : nil)
     }
 
+    public static func validSelector(_ selector: String) -> Bool {
+        if ["primary", "built-in"].contains(selector) { return true }
+        if selector.hasPrefix("uuid:"), selector.count > 5 { return true }
+        if selector.hasPrefix("external-"), let number = Int(selector.dropFirst(9)), number > 0,
+           selector == "external-\(number)" { return true }
+        return false
+    }
+
     public static func containing(_ rect: Rect, in displays: [Display]) -> Display? {
-        displays.max { rect.intersectionArea($0.frame) < rect.intersectionArea($1.frame) }
+        displays.min { first, second in
+            let a = rect.intersectionArea(first.frame), b = rect.intersectionArea(second.frame)
+            if a != b { return a > b }
+            func distance(_ frame: Rect) -> Double {
+                let x = rect.x + rect.width / 2, y = rect.y + rect.height / 2
+                let dx = max(frame.x - x, 0, x - frame.x - frame.width)
+                let dy = max(frame.y - y, 0, y - frame.y - frame.height)
+                return dx * dx + dy * dy
+            }
+            let da = distance(first.frame), db = distance(second.frame)
+            return da == db ? first.id < second.id : da < db
+        }
     }
 }
 

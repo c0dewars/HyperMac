@@ -1,3 +1,5 @@
+> Historical reference: horizontal scrolling was removed in 0.8.0. This document describes the previous implementation.
+
 # Scrolling behavior review — 8 October 2026
 
 The current horizontal layout is experimental. Verified final rectangles do not establish smooth movement. User reports of wrong-side arrivals, overlapping parked windows and extra wheel steps remain release-gating evidence.
@@ -34,5 +36,7 @@ This is a predictable discrete navigation mode, not Niri's continuous finger-fol
 The user selected live windows rather than capture-based previews. That choice remains in force. No display rearrangement, Screen Recording grant or compositor substitute is part of this change. Swift is suitable for the state-machine work; a language rewrite would not provide missing window-rendering control.
 
 ## Stable-release decision
+
+Local build 33 implements the first laptop-only transport changes: versioned per-display rendered frames, separate bounded native sizing, cached grid-rounded sizes, whole-point position writes and logical-distance edge ordering during transitions. It also suppresses unchanged-strip reflow caused by delayed own events. This is a foundation for the controller work above, not a continuous gesture controller or a compositor. The full live rerun is paused at the user's request; build 32 still exposed native width drift and 383–1042 ms command times in the retained seven-app sample.
 
 **Hold.** The requested visual behavior on side-by-side screens is not achieved by the current native-window projection. Keep the build local while improving and validating it. Do not publish a stable tag or label this GIF as evidence of animation quality.

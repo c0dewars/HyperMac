@@ -1,21 +1,26 @@
-# Remaining fixes and acceptance checks
+# Remaining validation for normal layouts
 
-Status: **0.7.0 build 28 test prerelease, 8 October 2026**. This list separates reproduced failures from checks that have not yet passed. The preview is intended for testing on another Mac, not a stable-production claim.
+Status: **0.8.0 build 34, local only, 8 October 2026**. Horizontal scrolling and its navigation, off-screen parking, column grouping and width controls have been removed. The historical scrolling test documents do not describe this build.
 
-| Priority | Status | Work remaining | Acceptance criterion |
-| --- | --- | --- | --- |
-| P1 | Reproduced limitation | Horizontal motion on displays beside one another uses instant navigation. The live-window backend cannot clip a window at a shared display edge; parked windows can appear from the wrong side or overlap at the edge. | Consistent directional behavior without visible overlap on laptop-only and laptop + Odyssey, or an explicitly limited interaction that users accept. |
-| P1 | Reproduced failure | Partly off-screen Firefox/Ghostty columns can shrink to the visible screen edge. The seven-app Odyssey test requested 2,490-point widths but received 1,303, leaving 5/7 placements verified and taking about 1.2 seconds. Review sizing order and correction limits. | Seven apps maintain requested widths/groups through both navigation directions, without repeated corrections or long stalls. |
-| P1 | Acceptance incomplete | Rapid physical Hyper+H/L and Hyper+wheel/trackpad need hardware testing. Model tests pass, but editor buttons do not prove shortcut delivery, momentum handling or one step per gesture. | Rapid/reversed inputs, focus while typing, focused-app closure and reopen keep navigation responsive and the correct screen active. |
-| P1 | Untested distribution path | Clean installation and upgrade on a second Apple Silicon Mac, including Gatekeeper's per-app Open Anyway flow and Accessibility grant. | Downloaded DMG opens, installs, launches from Applications and tiles after permission; upgrade preserves settings. Test macOS 14+ versions separately. |
-| P2 | Inconclusive live test | Native mouse resizing needs a reliable manual check. Automated edge drags did not change the observed test window. | Resizing a normal tile updates its neighbors; horizontal widths/groups remain usable and persist after reflow. |
-| P2 | Coverage incomplete | Spaces/fullscreen, docking, sleep/wake, dialogs/minimum sizes, undo/redo across display changes and sustained CPU/energy use. | Complete a recorded compatibility matrix with no lost windows, persistent overlays or idle correction loops. |
-| P2 | Observed tooling/config limitation | An external in-place edit to config.json was not noticed by the directory watcher; atomic replacement or Settings → Reload worked. | Both supported external save styles reload validated settings, or document and enforce one supported style. |
+## Implemented
 
-The screen-assignment bug is **fixed in build 28**: Preview and Apply share destination matching; live testing moved four matching apps to Odyssey with 4/4 verified positions and subsequent navigation remained on that screen. This does not resolve animation or sizing failures above.
+- Independent display modes: tile all windows, tile selected apps, custom positions, leave unchanged.
+- One shared preview/runtime planner, physical monitor IDs, arbitrary external-N roles, explicit missing-display policy, and local-first matching for apps with windows on multiple displays.
+- Lifecycle reflow without repeated writes for unchanged windows; bounded correction for app minimum sizes; no forced unconstrained fallback when tiles cannot fit.
+- Larger resizable Settings window, native toolbar, full-row selection, larger icon controls, safe deletion bindings, autosave and per-screen exclusions.
+- Horizontal configuration migration with a recoverable backup; custom names, apps, assignments, ordinary shortcuts and appearance settings retained.
+- Border and blur effects limited to managed windows. Reduce Motion and Reduce Transparency honored.
 
-Blur Off/intensity, focused-window borders, app removal, column grouping/width controls, autosave and the redesigned shortcut editor are implemented. Prior checks cover these controls; overlay quality during every transition and all apps is not certified.
+## Checks still required
 
-The DMG is intentionally **ad-hoc signed and not notarized**, following the no-paid-Apple-account distribution choice. The developer warning is expected, not a crash fix awaiting implementation. Use the per-app instructions in [Distribution](DISTRIBUTION.md).
+| Priority | Check | Acceptance |
+| --- | --- | --- |
+| P1 | Live lifecycle regression | Opening, closing, minimizing, hiding and restoring supported app windows reflows the correct display, with no repeated correction loop. Live window testing remains paused at the user's request. |
+| P1 | Physical multiple-monitor validation | Laptop + Odyssey, display reconnect, main-display changes, rotation, scaling and additional monitors agree with preview/apply. Automated geometry coverage is not a substitute for hardware testing. |
+| P1 | Clean second-Mac installation and upgrade | Downloaded DMG, per-app Open Anyway, Accessibility, launch and migration on supported Apple Silicon/macOS versions. |
+| P2 | Mouse resize and rapid shortcut input | Native window edge drags update BSP neighbors; focus/swap/resize shortcuts remain responsive under rapid input. |
+| P2 | Spaces, fullscreen, sleep/wake and energy | No lost windows, stale borders, excessive idle work or interference with dialogs and fullscreen apps. |
 
-Evidence: [seven-app live validation](VALIDATION-2026-10-08.md), [test history](../TEST-RESULTS.md), [upstream design review](SCROLLING-DESIGN-REVIEW.md), and [release readiness](../RELEASE-READINESS.md).
+App minimum sizes can make an arrangement impossible. HyperMac reports that limitation; custom positions may intentionally overlap and should be reviewed in preview. macOS Accessibility cannot guarantee identical animation or resizing behavior in every app.
+
+Builds remain **ad-hoc signed and unnotarized** under the no-paid-Apple-account distribution choice. The developer warning is expected; see [Distribution](DISTRIBUTION.md).

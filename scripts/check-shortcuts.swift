@@ -90,8 +90,8 @@ enum ShortcutChecks {
             appearance.blurIntensity = intensity
             do { try appearance.validate(); fatalError("Invalid blur intensity accepted") } catch is ConfigError {}
         }
-        precondition(starter.layouts.map(\.name) == ["Normal", "Horizontal"])
-        precondition(starter.layouts[0].adaptive && starter.layouts[1].scrolling != nil)
+        precondition(starter.layouts.map(\.name) == ["Normal"])
+        precondition(starter.layouts[0].adaptive && !starter.layouts[0].fallbackToPrimary)
         precondition(Configuration.defaultLayouts(browser: "test.browser").allSatisfy { $0.placements.first?.bundleID == "test.browser" })
         var invalidAnimation = starter
         invalidAnimation.animationDuration = -1

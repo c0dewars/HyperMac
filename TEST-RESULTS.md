@@ -1,3 +1,17 @@
+# Normal layouts — 0.8.0 build 34 (8 October 2026)
+
+- Horizontal runtime/UI, column actions and shipped preset removed. Legacy configurations migrate to ordinary per-display tiling; actual user data round-tripped with all four named layouts and 30 customized shortcuts retained.
+- Apple Silicon optimized build passed locally with Command Line Tools.
+- `scripts/check-layouts.swift`: 464 geometry/lifecycle/topology scenarios (one to five displays, up to 70 synthetic windows); local-first assignments for same-app windows; explicit cross-screen transfer; disconnected/fallback behavior; physical-ID precedence; arbitrary external-N roles; per-screen exclusions; new-display defaults; impossible fits; rotation and migration checks passed.
+- `scripts/check-shortcuts.swift`: passed shortcut persistence/directions, default/legacy config, adaptive lifecycle reflow, fixed slots, constrained sizes, monitor profiles, blur configuration, mouse split geometry, 39 BSP insertion/removal transitions, 320 algorithm/display/window-count scenarios and border geometry.
+- Native settings UI: button-padding activation, toolbar navigation, app rules, diagram resize/move, duplicate/delete, recorder cancellation and autosave checked. A hosting-related default-size regression was found and corrected. Test-created layouts removed.
+- Final installed bundle: `/Applications/HyperMac.app`, 0.8.0 (34), ad-hoc signature verified; Accessibility refreshed and read-only preview detected four open laptop windows. Confirmed Command-W closes Settings and Command-comma reopens it. In-place and atomic config reloads both reached the active model. All original app rules, four layout names, 30 shortcuts and appearance preferences were compared with the pre-test backup; startup preference restored. HyperMac was left closed to preserve the live-test pause.
+- Existing live-window testing remains paused. No 100% claim for real apps or future hardware; multi-monitor docking, actual mouse resize, shortcuts under load, overlays and second-Mac distribution still need acceptance. Full XCTest requires Xcode; the standalone suites run with Command Line Tools. No release was published during validation. The follow-up source/media update is prepared on `codex/normal-layouts-ui`.
+
+Earlier history below describes the removed scrolling feature and previous builds.
+
+---
+
 ## Follow-up fixes — 8 October 2026
 
 Installed and visually checked Layout 4: both Odyssey G95C and built-in display diagrams are visible even with no template apps. General shows focus-only borders enabled by default and optional experimental blur disabled. Existing user layouts were preserved.
@@ -238,3 +252,32 @@ Build 27 changed the editor but incorrectly treated saved screen destinations as
 - Added `docs/KNOWN-ISSUES.md` with reproduced failures and unverified acceptance checks. The owner's latest instruction authorizes pushing the branch and publishing a test DMG; the earlier stable-release hold still applies to production claims, not this test prerelease.
 - GitHub CI and the preview packaging workflow validate the pushed source separately. Release notes identify their runs and exact source commit. No additional live animation acceptance is claimed by this documentation update.
 - The first full-Xcode CI run caught an obsolete XCTest assumption that every directional binding's key equals its target. Hyper+H/L intentionally map letter keys to left/right. Updated the test to preserve both bindings while removing a launcher, assert the serialized shortcut list is unchanged, and check both letter mappings explicitly. No runtime code changed for this correction.
+
+## 2026-10-08 — native application shortcuts (0.7.0 build 29)
+
+- Added the native HyperMac application menu ahead of Edit, with Command-comma for Settings and Command-Q for Quit. The status menu displays the same bindings; global window shortcuts are unchanged.
+- Arm64 release build, plist validation, diff whitespace and strict ad-hoc bundle verification passed. Installed build 29 at the user's request.
+- Command-Q terminated the running process (confirmed absent with pgrep). Relaunched, closed Settings, sent Command-comma and observed a newly opened Settings window. Existing Edit commands remain in a separate menu.
+- Installing the changed ad-hoc binary required refreshing its Accessibility identity, as documented for preview updates. This menu-only change does not resolve the horizontal-scrolling backlog.
+- Refreshed only HyperMac's Accessibility entry after macOS authentication. The installed app resumed automatic tiling and verified 2/2 current window placements.
+
+## 2026-10-08 — laptop scrolling transport (local builds 30–33)
+
+Scope: the user selected sizing/correction, per-display movement ownership and off-screen presentation as the first three fixes, tested only on the built-in display. Live windows remain the chosen backend. No monitor arrangement or resolution changed.
+
+- Added a per-display rendered-viewport revision. Destinations are committed only after transport; interrupted movement resumes from its last submitted logical frame, and stale completions cannot overwrite a newer transition.
+- Horizontal transport negotiates size on-screen, accepts bounded native grid rounding for the requested slot, writes positions only during animation, and makes at most one final position correction. App minimums inferred in another arrangement are cleared on mode changes. Delayed own events do not restart an unchanged strip.
+- Edge order follows logical column distance throughout animation and is restored after activation. Native positions now use whole points to address cumulative AppKit width growth observed with fractional AXPosition writes.
+- Arm64 release compilation, standalone scrolling regressions and the shortcut/tiling suite passed. New cases cover seven mixed-width windows with a stack, both directions, interrupted retargeting, stale results, close recovery, both-edge order, safe size preparation, grid rounding and integral origins. The suites include the existing 320 tiling cases and 39 BSP transitions. Strict ad-hoc signature and plist verification passed. Full XCTest was not run locally with this Command Line Tools setup; these changes are not pushed to CI.
+- Build 30's first seven-app attempt exposed an infeasible learned-size plan and misleading 0/0 status. The failure now says No windows arranged, with constraint details in diagnostics. Build 31 identified Terminal's accepted 832 × 1099 size for an 830 × 1106 slot; retaining that accepted size stopped repeated resizing.
+- Build 32 exercised Brave, Firefox Developer Edition, Safari, Finder, TextEdit, Terminal and VS Code on the built-in 1800 × 1130-point usable area. Firefox/Safari shared a column; widths were 50%, 75% and 100%. Sequential editor navigation traversed both directions. The eight saved transitions all transferred keyboard focus and used zero size writes and zero position-correction passes. Five verified 7/7; three verified 6/7 as Finder/TextEdit widths drifted by 5–6 points. End-to-end times were 383–1042 ms, including discovery, a configured 220 ms animation and focus verification. This is not a smoothness or latency acceptance pass.
+- Build 33 adds integral native origins to address that drift. It is installed in /Applications/HyperMac.app with Accessibility enabled. Its initial run verified the three remaining open test apps; four windows had closed before the full repeat. The user explicitly paused live testing before the seven-app rerun, rapid reversals, close/reopen and visual acceptance. Do not mark those checks passed.
+- Computer use denied Ghostty, so Safari replaced its test slot. Helium exposed no usable window and its inspection stalled. Neither is claimed as visually validated here. No direct computer-use access to Codex was attempted.
+- Temporary Laptop validation remains in the local configuration because testing was paused. Existing layouts were preserved. Fresh backup: /tmp/hypermac-before-laptop-validation.json. Local reports: /tmp/hypermac-build31-initial.txt, /tmp/hypermac-build32-navigation.txt and /tmp/hypermac-build33-initial.txt. Resume from build 33, then remove only the temporary layout and close only disposable test windows.
+- **Stable release remains on hold.** No commit, push or release was made for these changes.
+
+## 0.8.0 documentation refresh
+
+- Replaced the old scrolling GIF with a nine-scene, 49.5-second walkthrough of actual build-34 settings captures, including normal per-display layouts, custom positions, app removal controls, preview, blur, shortcuts and recording. No live transition claim.
+- The temporary Workspace demo layout was deleted; the saved configuration matches the pre-capture backup byte for byte. The recorder was cancelled without changing bindings. Tiling was paused for capture.
+- Computer-use capture stopped when its helper service crashed while opening Displays; HyperMac had no corresponding crash report. No Displays capture is included.
