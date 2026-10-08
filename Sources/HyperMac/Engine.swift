@@ -446,9 +446,18 @@ final class Engine {
         let issues = result.messages + report.messages
         let summary = "\(layout.name) · \(report.succeeded)/\(report.requested) positions verified"
         let screenLines = screens.map { "\($0.name) [\($0.id)] mode=\(LayoutScreens.mode(on: $0, layout: layout, displays: screens).rawValue) usable=\($0.usable)" }
-        diagnosticReport = (["HyperMac \(Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") ?? "source")", summary,
-            "Accessibility: granted", "Displays:"] + screenLines + ["Discovery:"] + snapshot.notes + ["Placement results:"] + report.details + ["Issues:"] + issues +
-            ["Total: \(Int((ProcessInfo.processInfo.systemUptime - started) * 1000)) ms"]).joined(separator: "\n")
+        let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "source"
+        var diagnosticLines = ["HyperMac \(version)", summary, "Accessibility: granted", "Displays:"]
+        diagnosticLines.append(contentsOf: screenLines)
+        diagnosticLines.append("Discovery:")
+        diagnosticLines.append(contentsOf: snapshot.notes)
+        diagnosticLines.append("Placement results:")
+        diagnosticLines.append(contentsOf: report.details)
+        diagnosticLines.append("Issues:")
+        diagnosticLines.append(contentsOf: issues)
+        let elapsedMilliseconds = Int((ProcessInfo.processInfo.systemUptime - started) * 1000)
+        diagnosticLines.append("Total: \(elapsedMilliseconds) ms")
+        diagnosticReport = diagnosticLines.joined(separator: "\n")
         onStatus?(issues.isEmpty ? summary : summary + " — " + issues.joined(separator: " "))
     }
     @discardableResult
