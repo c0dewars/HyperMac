@@ -6,6 +6,20 @@ import Foundation
 @main
 enum ShortcutChecks {
     static func main() throws {
+        for direction in WindowDirection.allCases {
+            var shortcut = Shortcut(key: direction.rawValue, action: .launch, target: "com.apple.finder")
+            shortcut.selectAction(.swapWindow)
+            precondition(shortcut.target == direction.rawValue)
+            shortcut.selectAction(.focusWindow)
+            precondition(shortcut.target == direction.rawValue)
+        }
+        var customDirection = Shortcut(key: "k", action: .focusWindow, target: "up")
+        customDirection.selectAction(.swapWindow)
+        precondition(customDirection.target == "up")
+        var customResize = Shortcut(key: "equal", action: .resizeWindow, target: "narrower")
+        customResize.selectAction(.resizeWindow)
+        precondition(customResize.target == "narrower")
+        print("Passed: action editing preserves directions and custom resize targets; arrow actions choose their own direction.")
         let start = Rect(x: -500, y: 40, width: 800, height: 600)
         let end = Rect(x: 200, y: 90, width: 400, height: 900)
         precondition(WindowTransition.frame(from: start, to: end, progress: 0) == start)

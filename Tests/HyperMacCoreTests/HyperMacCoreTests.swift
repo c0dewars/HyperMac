@@ -2,6 +2,38 @@ import XCTest
 @testable import HyperMacCore
 
 final class HyperMacCoreTests: XCTestCase {
+    func testChangingActionPreservesAnExplicitDirection() {
+        for direction in WindowDirection.allCases {
+            var shortcut = Shortcut(key: "k", action: .focusWindow, target: direction.rawValue)
+            shortcut.selectAction(.swapWindow)
+            XCTAssertEqual(shortcut.target, direction.rawValue)
+            shortcut.selectAction(.swapWindow)
+            XCTAssertEqual(shortcut.target, direction.rawValue)
+        }
+    }
+
+    func testNewDirectionalActionUsesArrowAndKeepsResizeTargets() {
+        for direction in WindowDirection.allCases {
+            var shortcut = Shortcut(key: direction.rawValue, action: .launch, target: "com.apple.finder")
+            shortcut.selectAction(.swapWindow)
+            XCTAssertEqual(shortcut.target, direction.rawValue)
+        }
+        var resize = Shortcut(key: "equal", action: .resizeWindow, target: "narrower")
+        resize.selectAction(.resizeWindow)
+        XCTAssertEqual(resize.target, "narrower")
+        resize.selectAction(.focusWindow)
+        XCTAssertEqual(resize.target, "left")
+    }
+
+    func testReplacingAndRemovingShortcutRowsPreservesPresetTargets() throws {
+        var config = Configuration.starter
+        config.shortcuts = Configuration.omarchyShortcuts
+        config.shortcuts.removeFirst()
+        let loaded = try Configuration.decode(config.encoded())
+        for shortcut in loaded.shortcuts where shortcut.action == .focusWindow || shortcut.action == .swapWindow {
+            XCTAssertEqual(shortcut.target, shortcut.key)
+        }
+    }
     func testVisibleWindowMatchingAllowsSmallDecorationDifferences() {
         let ax = Rect(x: -1000, y: 30, width: 1000, height: 800)
         let decorated = Rect(x: -1000, y: 22, width: 1000, height: 808)

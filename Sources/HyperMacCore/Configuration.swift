@@ -260,6 +260,21 @@ public struct Shortcut: Codable, Equatable, Sendable {
     public init(key: String, modifiers: [String] = ["ctrl", "alt", "cmd"], action: Action, target: String = "") {
         self.key = key; self.modifiers = modifiers; self.action = action; self.target = target
     }
+
+    /// Called only by an explicit action-picker edit, never by a model refresh.
+    public mutating func selectAction(_ next: Action) {
+        guard next != action else { return }
+        action = next
+        switch next {
+        case .focusWindow, .swapWindow:
+            if WindowDirection(rawValue: target) == nil {
+                target = WindowDirection(rawValue: key.lowercased())?.rawValue ?? "left"
+            }
+        case .resizeWindow:
+            if !["wider", "narrower", "taller", "shorter"].contains(target) { target = "wider" }
+        default: break
+        }
+    }
 }
 
 public struct ConfigError: LocalizedError {
