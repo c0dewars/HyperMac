@@ -28,11 +28,16 @@ final class HyperMacCoreTests: XCTestCase {
     func testReplacingAndRemovingShortcutRowsPreservesPresetTargets() throws {
         var config = Configuration.starter
         config.shortcuts = Configuration.omarchyShortcuts
-        config.shortcuts.removeFirst()
+        let launcher = try XCTUnwrap(config.shortcuts.firstIndex { $0.action == .launch })
+        config.shortcuts.remove(at: launcher)
         let loaded = try Configuration.decode(config.encoded())
+        XCTAssertEqual(loaded.shortcuts, config.shortcuts)
         for shortcut in loaded.shortcuts where shortcut.action == .focusWindow || shortcut.action == .swapWindow {
-            XCTAssertEqual(shortcut.target, shortcut.key)
+            let expectedDirection = ["h": "left", "l": "right"][shortcut.key] ?? shortcut.key
+            XCTAssertEqual(shortcut.target, expectedDirection)
         }
+        XCTAssertEqual(loaded.shortcuts.first { $0.key == "h" && $0.action == .focusWindow }?.target, "left")
+        XCTAssertEqual(loaded.shortcuts.first { $0.key == "l" && $0.action == .focusWindow }?.target, "right")
     }
     func testVisibleWindowMatchingAllowsSmallDecorationDifferences() {
         let ax = Rect(x: -1000, y: 30, width: 1000, height: 800)

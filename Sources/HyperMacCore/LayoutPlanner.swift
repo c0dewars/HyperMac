@@ -17,6 +17,7 @@ public struct Move: Sendable {
 }
 
 public struct LayoutPlan: Sendable {
+    public init() {}
     public var moves: [Move] = []
     public var messages: [String] = []
     public var missingWindows = false

@@ -12,6 +12,9 @@ public struct Configuration: Codable, Equatable, Sendable {
     public var shortcuts: [Shortcut] = []
     public var layouts: [Layout] = []
     public var borderEnabled = true
+    public var focusedBorderOnly = true
+    public var blurUnfocusedWindows = false
+    public var blurIntensity: Double = 1
     public var borderWidth: Double = 3
     public var borderColor = "#A6F3C2"
     public var appColors: [String: String] = [:]
@@ -21,7 +24,7 @@ public struct Configuration: Codable, Equatable, Sendable {
         case version, automaticTiling, algorithm, gap, excludedBundleIDs, shortcuts, layouts
         case monitorProfiles, mouseResize
         case animationDuration
-        case borderEnabled, borderWidth, borderColor, appColors
+        case borderEnabled, focusedBorderOnly, blurUnfocusedWindows, blurIntensity, borderWidth, borderColor, appColors
     }
 
     public init(from decoder: Decoder) throws {
@@ -38,6 +41,9 @@ public struct Configuration: Codable, Equatable, Sendable {
         layouts = try c.decode([Layout].self, forKey: .layouts)
         // Existing 0.1.0 configurations keep working without a manual migration.
         borderEnabled = try c.decodeIfPresent(Bool.self, forKey: .borderEnabled) ?? true
+        focusedBorderOnly = try c.decodeIfPresent(Bool.self, forKey: .focusedBorderOnly) ?? true
+        blurUnfocusedWindows = try c.decodeIfPresent(Bool.self, forKey: .blurUnfocusedWindows) ?? false
+        blurIntensity = try c.decodeIfPresent(Double.self, forKey: .blurIntensity) ?? 1
         borderWidth = try c.decodeIfPresent(Double.self, forKey: .borderWidth) ?? 3
         borderColor = try c.decodeIfPresent(String.self, forKey: .borderColor) ?? "#A6F3C2"
         appColors = try c.decodeIfPresent([String: String].self, forKey: .appColors) ?? [:]
@@ -51,6 +57,7 @@ public struct Configuration: Codable, Equatable, Sendable {
     }
 
     public func validate() throws {
+        guard blurIntensity.isFinite, (0...1).contains(blurIntensity) else { throw ConfigError("Blur intensity must be 0–100%.") }
         guard version == 1 else { throw ConfigError("Unsupported configuration version \(version).") }
         guard animationDuration.isFinite, (0...0.5).contains(animationDuration) else { throw ConfigError("Animation duration must be 0–0.5 seconds.") }
         guard borderWidth.isFinite, (1...10).contains(borderWidth) else { throw ConfigError("Border width must be 1–10 points.") }
@@ -75,8 +82,22 @@ public struct Configuration: Codable, Equatable, Sendable {
             guard !layout.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
                 throw ConfigError("A layout needs a name.")
             }
-            guard !layout.placements.isEmpty else { throw ConfigError("Layout '\(layout.name)' has no windows.") }
+            guard !layout.placements.isEmpty || layout.scrolling != nil else { throw ConfigError("Layout '\(layout.name)' has no windows.") }
+            if let scroll = layout.scrolling {
+                guard scroll.animationDuration.isFinite, (0...0.5).contains(scroll.animationDuration) else {
+                    throw ConfigError("Scrolling transition must be 0–0.5 seconds.")
+                }
+                guard ["none", "all", "primary", "built-in", "external-1", "external-2"].contains(scroll.display) || (scroll.display.hasPrefix("uuid:") && scroll.display.count > 5) else { throw ConfigError("Unknown scrolling display selector.") }
+                guard scroll.neighborPreview.isFinite, (0...240).contains(scroll.neighborPreview),
+                      scroll.displayModes.allSatisfy({ (["primary", "built-in", "external-1", "external-2"].contains($0.key) || ($0.key.hasPrefix("uuid:") && $0.key.count > 5)) && LayoutScreenMode(rawValue: $0.value) != nil }) else {
+                    throw ConfigError("Neighbor preview must be 0–240 points; each display needs a valid mode.")
+                }
+                guard scroll.width.isFinite, (0.2...1).contains(scroll.width), !layout.adaptive else {
+                    throw ConfigError("Scrolling width must be 20–100%; scrolling and adaptive modes are exclusive.")
+                }
+            }
             for placement in layout.placements {
+                guard placement.scrollColumn == nil || placement.scrollColumn! >= 0 else { throw ConfigError("Column numbers must be nonnegative.") }
                 guard !placement.bundleID.isEmpty, placement.windowIndex >= 0 else {
                     throw ConfigError("Each placement needs an application bundle ID and a nonnegative window index.")
                 }
@@ -116,7 +137,7 @@ public struct Configuration: Codable, Equatable, Sendable {
                 guard WindowDirection(rawValue: shortcut.target) != nil else { throw ConfigError("Window direction must be left, right, up, or down.") }
             case .resizeWindow:
                 guard ["wider", "narrower", "taller", "shorter"].contains(shortcut.target) else { throw ConfigError("Resize target must be wider, narrower, taller, or shorter.") }
-            case .maximizeWindow: break
+            case .maximizeWindow, .groupPrevious, .groupNext, .ungroupWindow, .centerColumn: break
             case .toggleTiling, .retile: break
             }
         }
@@ -137,25 +158,26 @@ public struct Configuration: Codable, Equatable, Sendable {
 
     public static var starter: Configuration {
         var config = Configuration()
-        config.layouts = [
-            Layout(name: "Office", placements: [
-                Placement(bundleID: "com.apple.Safari", display: "external-1", frame: Rect(x: 0, y: 0, width: 0.65, height: 1)),
-                Placement(bundleID: "com.apple.Terminal", display: "external-1", frame: Rect(x: 0.65, y: 0, width: 0.35, height: 1)),
-                Placement(bundleID: "com.apple.TextEdit", display: "built-in", frame: Rect(x: 0, y: 0, width: 1, height: 1))
-            ]),
-            Layout(name: "Home", placements: [
-                Placement(bundleID: "com.apple.Safari", display: "external-1", frame: Rect(x: 0, y: 0, width: 0.5, height: 1)),
-                Placement(bundleID: "com.apple.Terminal", display: "external-1", frame: Rect(x: 0.5, y: 0, width: 0.25, height: 1)),
-                Placement(bundleID: "com.apple.TextEdit", display: "external-1", frame: Rect(x: 0.75, y: 0, width: 0.25, height: 1))
-            ]),
-            Layout(name: "Two externals", placements: [
-                Placement(bundleID: "com.apple.Safari", display: "external-1", frame: Rect(x: 0, y: 0, width: 1, height: 1)),
-                Placement(bundleID: "com.apple.Terminal", display: "external-2", frame: Rect(x: 0, y: 0, width: 1, height: 1)),
-                Placement(bundleID: "com.apple.TextEdit", display: "built-in", frame: Rect(x: 0, y: 0, width: 1, height: 1))
-            ])
-        ]
+        config.layouts = defaultLayouts()
         config.shortcuts = omarchyShortcuts
         return config
+    }
+
+    public static func defaultLayouts(browser: String = "com.apple.Safari", editor: String = "com.microsoft.VSCode", teams: String = "com.microsoft.teams2") -> [Layout] {
+        let apps = [browser, editor, teams]
+        var normal = Layout(name: "Normal", placements: apps.enumerated().map { index, app in
+            Placement(bundleID: app, display: "primary", frame: Rect(x: Double(index) / 3, y: 0, width: 1.0 / 3, height: 1))
+        })
+        normal.adaptive = true
+        normal.fallbackToPrimary = true
+        var horizontal = Layout(name: "Horizontal", placements: apps.map { app in
+            Placement(bundleID: app, display: "primary", frame: Rect(x: 0, y: 0, width: 0.5, height: 1))
+        })
+        horizontal.scrolling = ScrollingOptions()
+        horizontal.scrolling?.allWindows = false
+        horizontal.scrolling?.centerFocus = true
+        horizontal.fallbackToPrimary = true
+        return [normal, horizontal]
     }
 
     /// Retained only to recognize an untouched pre-Hyper default configuration.
@@ -173,6 +195,8 @@ public struct Configuration: Codable, Equatable, Sendable {
     public static var omarchyShortcuts: [Shortcut] {
         let hyper = ["ctrl", "alt", "cmd", "shift"]
         var shortcuts = [
+            Shortcut(key: "h", modifiers: hyper, action: .focusWindow, target: "left"),
+            Shortcut(key: "l", modifiers: hyper, action: .focusWindow, target: "right"),
             Shortcut(key: "return", action: .launch, target: "@terminal"),
             Shortcut(key: "return", modifiers: hyper, action: .launch, target: "@browser"),
             Shortcut(key: "b", modifiers: hyper, action: .launch, target: "@browser"),
@@ -220,18 +244,20 @@ public struct Configuration: Codable, Equatable, Sendable {
 
 public struct Layout: Codable, Equatable, Sendable {
     public var name: String
+    public var scrolling: ScrollingOptions? = nil
     public var adaptive = false
     public var fallbackToPrimary = false
     public var applyGap = true
     public var placements: [Placement]
     public init(name: String, placements: [Placement]) { self.name = name; self.placements = placements }
-    private enum CodingKeys: String, CodingKey { case name, placements, fallbackToPrimary, applyGap, adaptive }
+    private enum CodingKeys: String, CodingKey { case name, placements, fallbackToPrimary, applyGap, adaptive, scrolling }
     public init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         name = try c.decode(String.self, forKey: .name)
         placements = try c.decode([Placement].self, forKey: .placements)
         fallbackToPrimary = try c.decodeIfPresent(Bool.self, forKey: .fallbackToPrimary) ?? false
         applyGap = try c.decodeIfPresent(Bool.self, forKey: .applyGap) ?? true
+        scrolling = try c.decodeIfPresent(ScrollingOptions.self, forKey: .scrolling)
         adaptive = try c.decodeIfPresent(Bool.self, forKey: .adaptive) ?? false
     }
 
@@ -239,6 +265,7 @@ public struct Layout: Codable, Equatable, Sendable {
 
 public struct Placement: Codable, Equatable, Sendable {
     public var bundleID: String
+    public var scrollColumn: Int? = nil
     public var titleContains = ""
     public var windowIndex = 0
     public var display: String
@@ -249,7 +276,7 @@ public struct Placement: Codable, Equatable, Sendable {
 }
 
 public enum Action: String, Codable, CaseIterable, Sendable {
-    case launch, layout, toggleTiling, retile, focusWindow, swapWindow, resizeWindow, maximizeWindow
+    case launch, layout, toggleTiling, retile, focusWindow, swapWindow, resizeWindow, maximizeWindow, groupPrevious, groupNext, ungroupWindow, centerColumn
 }
 
 public struct Shortcut: Codable, Equatable, Sendable {

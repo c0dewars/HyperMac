@@ -27,6 +27,8 @@ jobs:
         run: |
           swiftc Sources/HyperMacCore/*.swift scripts/check-shortcuts.swift -o "$RUNNER_TEMP/hypermac-checks"
           "$RUNNER_TEMP/hypermac-checks"
+          swiftc Sources/HyperMacCore/*.swift scripts/check-scrolling.swift -o "$RUNNER_TEMP/hypermac-scroll-checks"
+          "$RUNNER_TEMP/hypermac-scroll-checks"
       - name: Package and verify DMG
         run: bash scripts/package-dmg.sh
       - id: version
@@ -65,6 +67,8 @@ jobs:
           Apple Silicon only, macOS 14+. Development preview, not production-ready.
 
           This DMG is ad-hoc signed and is NOT Apple-notarized. Gatekeeper may block it. Replacing a locally signed copy may require Accessibility permission to be refreshed. Read the repository README before installation. No production signing credentials are included.
+
+          Copy HyperMac to Applications and try opening it. If the developer cannot be verified, use System Settings → Privacy & Security → Open Anyway for HyperMac if you trust the download. Then enable Accessibility. HyperMac runs in the menu bar. No paid Apple account is required to install this preview.
 
           Download the DMG and its SHA-256 checksum below. Access follows the repository's private visibility.
           NOTES

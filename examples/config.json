@@ -9,6 +9,28 @@
   ],
   "shortcuts": [
     {
+      "key": "h",
+      "modifiers": [
+        "ctrl",
+        "alt",
+        "cmd",
+        "shift"
+      ],
+      "action": "focusWindow",
+      "target": "left"
+    },
+    {
+      "key": "l",
+      "modifiers": [
+        "ctrl",
+        "alt",
+        "cmd",
+        "shift"
+      ],
+      "action": "focusWindow",
+      "target": "right"
+    },
+    {
       "key": "return",
       "modifiers": [
         "ctrl",
@@ -331,58 +353,57 @@
   ],
   "layouts": [
     {
-      "name": "Office",
-      "fallbackToPrimary": false,
-      "applyGap": true,
+      "name": "Normal",
       "placements": [
         {
           "bundleID": "com.apple.Safari",
           "titleContains": "",
           "windowIndex": 0,
-          "display": "external-1",
+          "display": "primary",
           "frame": {
-            "x": 0,
+            "x": 0.0,
             "y": 0,
-            "width": 0.65,
+            "width": 0.3333333333333333,
             "height": 1
           }
         },
         {
-          "bundleID": "com.apple.Terminal",
+          "bundleID": "com.microsoft.VSCode",
           "titleContains": "",
           "windowIndex": 0,
-          "display": "external-1",
+          "display": "primary",
           "frame": {
-            "x": 0.65,
+            "x": 0.3333333333333333,
             "y": 0,
-            "width": 0.35,
+            "width": 0.3333333333333333,
             "height": 1
           }
         },
         {
-          "bundleID": "com.apple.TextEdit",
+          "bundleID": "com.microsoft.teams2",
           "titleContains": "",
           "windowIndex": 0,
-          "display": "built-in",
+          "display": "primary",
           "frame": {
-            "x": 0,
+            "x": 0.6666666666666666,
             "y": 0,
-            "width": 1,
+            "width": 0.3333333333333333,
             "height": 1
           }
         }
-      ]
+      ],
+      "adaptive": true,
+      "fallbackToPrimary": true,
+      "applyGap": true
     },
     {
-      "name": "Home",
-      "fallbackToPrimary": false,
-      "applyGap": true,
+      "name": "Horizontal",
       "placements": [
         {
           "bundleID": "com.apple.Safari",
           "titleContains": "",
           "windowIndex": 0,
-          "display": "external-1",
+          "display": "primary",
           "frame": {
             "x": 0,
             "y": 0,
@@ -391,73 +412,42 @@
           }
         },
         {
-          "bundleID": "com.apple.Terminal",
+          "bundleID": "com.microsoft.VSCode",
           "titleContains": "",
           "windowIndex": 0,
-          "display": "external-1",
+          "display": "primary",
           "frame": {
-            "x": 0.5,
+            "x": 0,
             "y": 0,
-            "width": 0.25,
+            "width": 0.5,
             "height": 1
           }
         },
         {
-          "bundleID": "com.apple.TextEdit",
+          "bundleID": "com.microsoft.teams2",
           "titleContains": "",
           "windowIndex": 0,
-          "display": "external-1",
+          "display": "primary",
           "frame": {
-            "x": 0.75,
+            "x": 0,
             "y": 0,
-            "width": 0.25,
+            "width": 0.5,
             "height": 1
           }
         }
-      ]
-    },
-    {
-      "name": "Two externals",
-      "fallbackToPrimary": false,
+      ],
+      "adaptive": false,
+      "fallbackToPrimary": true,
       "applyGap": true,
-      "placements": [
-        {
-          "bundleID": "com.apple.Safari",
-          "titleContains": "",
-          "windowIndex": 0,
-          "display": "external-1",
-          "frame": {
-            "x": 0,
-            "y": 0,
-            "width": 1,
-            "height": 1
-          }
-        },
-        {
-          "bundleID": "com.apple.Terminal",
-          "titleContains": "",
-          "windowIndex": 0,
-          "display": "external-2",
-          "frame": {
-            "x": 0,
-            "y": 0,
-            "width": 1,
-            "height": 1
-          }
-        },
-        {
-          "bundleID": "com.apple.TextEdit",
-          "titleContains": "",
-          "windowIndex": 0,
-          "display": "built-in",
-          "frame": {
-            "x": 0,
-            "y": 0,
-            "width": 1,
-            "height": 1
-          }
-        }
-      ]
+      "scrolling": {
+        "display": "primary",
+        "allWindows": false,
+        "width": 0.5,
+        "centerFocus": true,
+        "hyperScroll": false,
+        "wrap": false,
+        "animationDuration": 0.22
+      }
     }
   ],
   "borderEnabled": true,

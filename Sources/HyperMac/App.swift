@@ -34,6 +34,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         do { configuration = try store.load() }
         catch { startupError = "Configuration was not loaded: \(error.localizedDescription)" }
         engine = Engine(config: configuration)
+        engine.onParkedWindows = { [weak self] numbers in self?.focusBorder.setParkedWindows(numbers) }
         engine.onTransition = { [weak self] active in self?.focusBorder.setTransitioning(active) }
         engine.onModeChange = { [weak self] active in self?.focusBorder.setActive(active) }
         engine.onStatus = { [weak self] status in
@@ -75,9 +76,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func apply(_ next: Configuration, persist: Bool) throws {
         try next.validate()
-        try hotKeys.replace(with: next.shortcuts)
+        if next.shortcuts != configuration.shortcuts { try hotKeys.replace(with: next.shortcuts) }
         do { if persist { try store.save(next) } }
-        catch { try? hotKeys.replace(with: configuration.shortcuts); throw error }
+        catch { if next.shortcuts != configuration.shortcuts { try? hotKeys.replace(with: configuration.shortcuts) }; throw error }
         configuration = next
         engine.update(next)
         focusBorder.update(next)
@@ -142,7 +143,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 arrange: { [unowned self] in self.engine.applyLayout($0) },
                 tile: { [unowned self] in self.resume() }, pause: { [unowned self] in self.pause() },
                 diagnostics: { [unowned self] in self.copyDiagnostics() })
+            model.readDiagnostics = { [weak self] in self?.engine.diagnosticReport ?? "" }
             model.runtimeStatus = status
+            model.navigateScrolling = { [weak self] name, direction, displayID in
+                guard let self else { return }
+                guard self.engine.mode == .layout(name) else {
+                    self.settingsWindow?.model.message = "Apply this horizontal layout before navigating its columns."
+                    return
+                }
+                self.engine.navigateScrolling(direction, displayID: displayID)
+            }
             settingsWindow = SettingsWindow(model: model)
             settingsWindow?.onClose = { [weak self] in self?.settingsWindow = nil }
         }
@@ -156,6 +166,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         alert.messageText = "HyperMac"
         alert.informativeText = message
         alert.runModal()
+    }
+
+    func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
+        guard let engine else { return .terminateNow }
+        Task { await engine.prepareToQuit(); sender.reply(toApplicationShouldTerminate: true) }
+        return .terminateLater
     }
 
     func applicationWillTerminate(_ notification: Notification) { engine?.stop(); focusBorder.stop() }

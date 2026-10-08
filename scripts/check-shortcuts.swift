@@ -6,6 +6,10 @@ import Foundation
 @main
 enum ShortcutChecks {
     static func main() throws {
+        for (key, direction) in [("h", "left"), ("l", "right")] {
+            let binding = Configuration.omarchyShortcuts.first { $0.key == key && Set($0.modifiers) == Set(["ctrl", "alt", "cmd", "shift"]) }
+            precondition(binding?.action == .focusWindow && binding?.target == direction)
+        }
         for direction in WindowDirection.allCases {
             var shortcut = Shortcut(key: direction.rawValue, action: .launch, target: "com.apple.finder")
             shortcut.selectAction(.swapWindow)
@@ -75,6 +79,20 @@ enum ShortcutChecks {
         precondition(!disabledProfile.matches(["external", "internal"]))
         print("Passed: mouse split resizing preserves neighbor geometry; monitor profiles match exact unordered topology and respect disable.")
         let starter = Configuration.starter
+        var appearance = starter
+        appearance.blurUnfocusedWindows = true
+        for intensity in [0.0, 0.25, 0.5, 1.0] {
+            appearance.blurIntensity = intensity
+            let saved = try Configuration.decode(appearance.encoded())
+            precondition(saved.blurIntensity == intensity && saved.focusedBorderOnly)
+        }
+        for intensity in [-0.1, 1.1, Double.infinity] {
+            appearance.blurIntensity = intensity
+            do { try appearance.validate(); fatalError("Invalid blur intensity accepted") } catch is ConfigError {}
+        }
+        precondition(starter.layouts.map(\.name) == ["Normal", "Horizontal"])
+        precondition(starter.layouts[0].adaptive && starter.layouts[1].scrolling != nil)
+        precondition(Configuration.defaultLayouts(browser: "test.browser").allSatisfy { $0.placements.first?.bundleID == "test.browser" })
         var invalidAnimation = starter
         invalidAnimation.animationDuration = -1
         do { try invalidAnimation.validate(); fatalError("Negative duration accepted") } catch is ConfigError {}
@@ -129,6 +147,9 @@ enum ShortcutChecks {
             catch is ConfigError {}
         }
         var legacy = starter
+        legacy.layouts = ["Office", "Home", "Two externals"].map { name in
+            var layout = starter.layouts[0]; layout.name = name; return layout
+        }
         legacy.shortcuts = Configuration.legacyShortcuts
         let decodedLegacy = try Configuration.decode(legacy.encoded())
         precondition(decodedLegacy.shortcuts == Configuration.legacyShortcuts)

@@ -5,8 +5,19 @@ import HyperMacCore
 @MainActor
 final class FocusBorder {
     private let probe = Accessibility()
+    private var parkedNumbers: Set<Int> = []
+    func setParkedWindows(_ numbers: Set<Int>) {
+        guard numbers != parkedNumbers else { return }
+        parkedNumbers = numbers
+        for (id, panel) in panels where owners[id].map({ numbers.contains($0) }) == true { panel.orderOut(nil); blurPanels[id]?.orderOut(nil) }
+        schedule()
+    }
     private var config = Configuration()
     private var active = false
+    private var effectsEnabled: Bool { config.borderEnabled || config.blurUnfocusedWindows }
+    private var focusedNumber: Int?
+    private var colors: [Int: String] = [:]
+    private var blurPanels: [Int: BorderPanel] = [:]
     private var panels: [Int: BorderPanel] = [:]
     private var tokens: [(NotificationCenter, NSObjectProtocol)] = []
     private var observers: [pid_t: AXObserver] = [:]
@@ -41,7 +52,7 @@ final class FocusBorder {
         // for floating/ignored apps and HyperMac's own settings window.
         visibilityTimer = Timer.scheduledTimer(withTimeInterval: 0.3, repeats: true) { [weak self] _ in
             Task { @MainActor in
-                guard let self, self.active, self.config.borderEnabled else { return }
+                guard let self, self.active, self.effectsEnabled else { return }
                 let stack = self.visibleStack()
                 let signature = stack.map { String($0.number) }.joined(separator: "|")
                 guard signature != self.lastStack else {
@@ -56,7 +67,7 @@ final class FocusBorder {
     }
 
     private func visibleStack() -> [(number: Int, frame: CGRect)] {
-        let ownBorders = Set(panels.values.map(\.windowNumber))
+        let ownBorders = Set(panels.values.map(\.windowNumber) + blurPanels.values.map(\.windowNumber))
         let list = CGWindowListCopyWindowInfo([.optionOnScreenOnly, .excludeDesktopElements], kCGNullWindowID)
             as? [[String: Any]] ?? []
         return list.compactMap { info in
@@ -78,12 +89,16 @@ final class FocusBorder {
 
     func update(_ config: Configuration) {
         self.config = config; generation += 1
-        if !config.borderEnabled { hideAll(); clearObservers() }
+        if !config.blurUnfocusedWindows || config.blurIntensity == 0 {
+            for panel in blurPanels.values { panel.close() }
+            blurPanels.removeAll()
+        }
+        if !effectsEnabled { hideAll(); clearObservers() }
         schedule()
     }
 
     func schedule() {
-        guard active, config.borderEnabled else { hideAll(); return }
+        guard active, effectsEnabled else { hideAll(); return }
         guard pending == nil else { return }
         let work = DispatchWorkItem { [weak self] in
             guard let self else { return }
@@ -97,25 +112,31 @@ final class FocusBorder {
     private func refresh() async {
         if transitionTimer != nil { trackExistingBorders(); return }
         guard !busy else { dirty = true; return }
-        guard active, config.borderEnabled, AXIsProcessTrusted() else { hideAll(); clearObservers(); return }
+        guard active, effectsEnabled, AXIsProcessTrusted() else { hideAll(); clearObservers(); return }
         busy = true
         let version = generation
         defer { busy = false; if dirty { dirty = false; schedule() } }
         let snapshot = await probe.snapshot(excluding: config.excludedBundleIDs)
-        guard version == generation, active, config.borderEnabled else { return }
+        guard version == generation, active, effectsEnabled else { return }
+        if let app = NSWorkspace.shared.frontmostApplication,
+           let focused = await probe.focused(pid: app.processIdentifier) {
+            focusedNumber = snapshot.windows.first(where: { CFEqual($0.element, focused.element) })?.windowNumber
+        } else { focusedNumber = nil }
+        guard version == generation, active else { return }
         synchronize(snapshot.windows)
         let live = Set(snapshot.windows.map { $0.descriptor.id })
         for id in Array(panels.keys) where !live.contains(id) {
             panels.removeValue(forKey: id)?.close()
-            owners.removeValue(forKey: id)
+            if let number = owners.removeValue(forKey: id) { colors.removeValue(forKey: number) }
+            blurPanels.removeValue(forKey: id)?.close()
         }
         let stack = visibleStack()
         let top = NSScreen.screens.first?.frame.maxY ?? 0
         for window in snapshot.windows {
             let id = window.descriptor.id
-            guard let number = window.windowNumber,
+            guard let number = window.windowNumber, !parkedNumbers.contains(number),
                   let stackIndex = stack.firstIndex(where: { $0.number == number }) else {
-                panels[id]?.orderOut(nil)
+                panels[id]?.orderOut(nil); blurPanels[id]?.orderOut(nil)
                 continue
             }
             let panel: BorderPanel
@@ -131,14 +152,16 @@ final class FocusBorder {
                 panels[id] = panel
             }
             owners[id] = number
+            colors[number] = config.appColors[window.descriptor.bundleID] ?? config.borderColor
             update(panel, owner: stack[stackIndex].frame, number: number, top: top)
+            updateBlur(id: id, owner: stack[stackIndex].frame, number: number, top: top)
         }
     }
 
     func setTransitioning(_ active: Bool) {
         transitionTimer?.invalidate()
         transitionTimer = nil
-        if active, self.active, config.borderEnabled {
+        if active, self.active, effectsEnabled {
             // Only read WindowServer geometry during motion; avoid rediscovering AX
             // windows while their size and position attributes are in transition.
             transitionTimer = Timer.scheduledTimer(withTimeInterval: 1.0 / 60, repeats: true) { [weak self] _ in
@@ -148,7 +171,7 @@ final class FocusBorder {
     }
 
     private func scheduleGeometryUpdate() {
-        guard active, config.borderEnabled, transitionTimer == nil, pendingGeometry == nil else { return }
+        guard active, effectsEnabled, transitionTimer == nil, pendingGeometry == nil else { return }
         let work = DispatchWorkItem { [weak self] in
             guard let self else { return }
             self.pendingGeometry = nil
@@ -159,25 +182,27 @@ final class FocusBorder {
     }
 
     private func trackExistingBorders() {
-        guard active, config.borderEnabled else { return }
+        guard active, effectsEnabled else { return }
         let stack = visibleStack()
         let top = NSScreen.screens.first?.frame.maxY ?? 0
         for (id, panel) in panels {
-            guard let number = owners[id], let owner = stack.first(where: { $0.number == number }) else {
-                panel.orderOut(nil); continue
+            guard let number = owners[id], !parkedNumbers.contains(number), let owner = stack.first(where: { $0.number == number }) else {
+                panel.orderOut(nil); blurPanels[id]?.orderOut(nil); continue
             }
             update(panel, owner: owner.frame, number: number, top: top, reorder: !panel.isVisible)
+            updateBlur(id: id, owner: owner.frame, number: number, top: top, reorder: false)
         }
     }
 
     private func update(_ panel: BorderPanel, owner: CGRect, number: Int, top: CGFloat, reorder: Bool = true) {
+            guard config.borderEnabled, !config.focusedBorderOnly || number == focusedNumber else { panel.orderOut(nil); return }
             // Use the owner's current WindowServer bounds, not an earlier AX snapshot.
             let geometry = BorderGeometry.outside(window: Rect(x: owner.minX, y: owner.minY,
                 width: owner.width, height: owner.height), width: config.borderWidth)
             let frame = geometry.panel
             let rect = NSRect(x: frame.x, y: top - frame.y - frame.height, width: frame.width, height: frame.height)
             let outline = panel.contentView as? BorderView
-            let color = AppColor.nsColor(config.borderColor)
+            let color = AppColor.nsColor(colors[number] ?? config.borderColor)
             let stroke = NSRect(x: geometry.stroke.x, y: geometry.stroke.y,
                 width: geometry.stroke.width, height: geometry.stroke.height)
             if panel.frame != rect { panel.setFrame(rect, display: false) }
@@ -190,6 +215,31 @@ final class FocusBorder {
             // The ring is outside the owner. Native ordering supplies occlusion;
             // rectangular clipping falsely treats transparent windows as opaque.
             if reorder { panel.order(.below, relativeTo: number) }
+    }
+
+    private func updateBlur(id: Int, owner: CGRect, number: Int, top: CGFloat, reorder: Bool = true) {
+        guard config.blurUnfocusedWindows, config.blurIntensity > 0, focusedNumber != nil, focusedNumber != number,
+              !parkedNumbers.contains(number), !NSWorkspace.shared.accessibilityDisplayShouldReduceTransparency else {
+            blurPanels[id]?.orderOut(nil); return
+        }
+        let panel: BorderPanel
+        if let existing = blurPanels[id] { panel = existing }
+        else {
+            panel = BorderPanel(contentRect: .zero, styleMask: [.borderless, .nonactivatingPanel], backing: .buffered, defer: false)
+            panel.isOpaque = false; panel.backgroundColor = .clear; panel.hasShadow = false
+            panel.ignoresMouseEvents = true; panel.hidesOnDeactivate = false; panel.level = .normal
+            panel.collectionBehavior = [.moveToActiveSpace, .ignoresCycle, .transient]
+            panel.isReleasedWhenClosed = false
+            let effect = NSVisualEffectView(frame: .zero)
+            effect.blendingMode = .behindWindow; effect.material = .hudWindow; effect.state = .active
+            effect.wantsLayer = true; effect.layer?.cornerRadius = 12; effect.layer?.masksToBounds = true
+            panel.contentView = effect
+            blurPanels[id] = panel
+        }
+        let rect = NSRect(x: owner.minX, y: top - owner.maxY, width: owner.width, height: owner.height)
+        if panel.frame != rect { panel.setFrame(rect, display: false) }
+        panel.alphaValue = config.blurIntensity
+        if reorder || !panel.isVisible { panel.order(.above, relativeTo: number) }
     }
 
     private var windowNotifications: [String] {
@@ -240,7 +290,7 @@ final class FocusBorder {
         }
     }
 
-    private func hideAll() { panels.values.forEach { $0.orderOut(nil) } }
+    private func hideAll() { panels.values.forEach { $0.orderOut(nil) }; blurPanels.values.forEach { $0.orderOut(nil) } }
     private func clearObservers() {
         for observer in observers.values {
             CFRunLoopRemoveSource(CFRunLoopGetMain(), AXObserverGetRunLoopSource(observer), .commonModes)
@@ -254,6 +304,7 @@ final class FocusBorder {
         active = false; generation += 1
         pending?.cancel(); pending = nil; clearObservers()
         panels.values.forEach { $0.close() }; panels.removeAll()
+        blurPanels.values.forEach { $0.close() }; blurPanels.removeAll()
         for (center, token) in tokens { center.removeObserver(token) }
         tokens.removeAll()
     }

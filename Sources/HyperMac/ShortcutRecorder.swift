@@ -10,6 +10,10 @@ struct ShortcutRecorder: NSViewRepresentable {
     @Binding var shortcut: Shortcut
     func makeNSView(context: Context) -> RecorderButton { RecorderButton() }
     func updateNSView(_ view: RecorderButton, context: Context) {
+        view.displayTitle = shortcut.key.isEmpty ? "Click to record" : shortcut.modifiers.map {
+            ["ctrl": "⌃", "alt": "⌥", "cmd": "⌘", "shift": "⇧"][$0] ?? $0
+        }.joined(separator: " ") + "  " + (["left": "←", "right": "→", "up": "↑", "down": "↓", "return": "↵", "space": "Space"] [shortcut.key] ?? shortcut.key.uppercased())
+        view.refreshTitle()
         view.record = { key, modifiers in shortcut.key = key; shortcut.modifiers = modifiers }
     }
     static func dismantleNSView(_ view: RecorderButton, coordinator: ()) { view.finish() }
@@ -18,6 +22,8 @@ struct ShortcutRecorder: NSViewRepresentable {
 final class RecorderButton: NSButton {
     var record: ((String, [String]) -> Void)?
     private var recording = false
+    var displayTitle = "Click to record"
+    func refreshTitle() { if !recording { title = displayTitle } }
     override var acceptsFirstResponder: Bool { true }
     init() {
         super.init(frame: .zero)
@@ -33,7 +39,7 @@ final class RecorderButton: NSButton {
     }
     func finish() {
         guard recording else { return }
-        recording = false; title = "Record shortcut"
+        recording = false; refreshTitle()
         NotificationCenter.default.post(name: .shortcutRecording, object: false)
     }
     override func resignFirstResponder() -> Bool { finish(); return super.resignFirstResponder() }
