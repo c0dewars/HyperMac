@@ -65,12 +65,26 @@ final class SettingsModel: ObservableObject {
     }
 }
 
+// @State is a SwiftUI macro whose plugin ships only with full Xcode; this keeps CLT-only builds working.
+@MainActor
+final class SettingsUIState: ObservableObject {
+    @Published var section = "General"
+    @Published var showDetails = false
+}
+
 @MainActor
 struct SettingsView: View {
     @ObservedObject var model: SettingsModel
 
-    @State private var section = "General"
-    @State private var showDetails = false
+    @StateObject private var ui = SettingsUIState()
+    private var section: String {
+        get { ui.section }
+        nonmutating set { ui.section = newValue }
+    }
+    private var showDetails: Bool {
+        get { ui.showDetails }
+        nonmutating set { ui.showDetails = newValue }
+    }
     private let sections = [("General", "slider.horizontal.3"), ("Shortcuts", "keyboard"),
                             ("Layouts", "rectangle.split.3x1"), ("Displays", "display.2")]
 
@@ -356,7 +370,7 @@ private struct ShortcutEditor: View {
                 Button("Remove", role: .destructive, action: remove)
             }
             HStack {
-                Picker("Action", selection: Binding(get: { shortcut.action }, set: { shortcut.selectAction($0) })) {
+                Picker("Action", selection: $shortcut.action) {
                     Text("Launch/focus app").tag(Action.launch)
                     Text("Apply layout").tag(Action.layout)
                     Text("Toggle tiling").tag(Action.toggleTiling)
@@ -386,6 +400,13 @@ private struct ShortcutEditor: View {
                             Text(target.capitalized).tag(target)
                         }
                     }
+                }
+            }
+            .onChange(of: shortcut.action) { _, action in
+                switch action {
+                case .focusWindow, .swapWindow: shortcut.target = "left"
+                case .resizeWindow: shortcut.target = "wider"
+                default: break
                 }
             }
         }
