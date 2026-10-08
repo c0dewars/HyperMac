@@ -156,7 +156,7 @@ final class HyperMacCoreTests: XCTestCase {
         let windows = [WindowDescriptor(id: 7, bundleID: "app", title: "Project", frame: placement.frame)]
         let plan = LayoutPlanner.plan(layout, windows: windows, displays: [display("main", primary: true)], gap: 0)
         XCTAssertEqual(plan.moves.count, 1)
-        XCTAssertTrue(plan.messages.contains { $0.contains("same window") })
+        XCTAssertTrue(plan.messages.contains { $0.contains("Duplicate window rule") })
     }
 
     func testPlannerMatchesTitleAndIndexWithoutNeedingMissingDisplayWindow() {

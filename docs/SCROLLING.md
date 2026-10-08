@@ -1,3 +1,5 @@
+> Historical reference: horizontal scrolling was removed in 0.8.0. This document describes the previous implementation.
+
 # Horizontal scrolling — development preview
 
 This branch adds a horizontal strip with optional vertical groups. It is experimental. Each horizontal display has its own strip, which must have a safe horizontal outside edge for parking overflow windows. The Odyssey G95C has been tested with the built-in display also connected; a monitor surrounded on both sides is rejected. A display without a safe outside edge is left unchanged and reported; other supported displays continue.

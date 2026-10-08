@@ -17,7 +17,6 @@ struct WindowSnapshot {
 
 struct MoveReport {
     var actualFrames: [Int: Rect] = [:]
-    var logicalFrames: [Int: Rect]? = nil
     var succeeded = 0
     var requested = 0
     var messages: [String] = []
@@ -78,23 +77,6 @@ final class Accessibility: @unchecked Sendable {
                 _ = AXUIElementSetAttributeValue(window.element, kAXMainAttribute as CFString, kCFBooleanTrue)
                 _ = AXUIElementSetAttributeValue(window.element, kAXFocusedAttribute as CFString, kCFBooleanTrue)
                 continuation.resume(returning: AXUIElementPerformAction(window.element, kAXRaiseAction as CFString) == .success)
-            }
-        }
-    }
-
-    /// Activation can reorder multiple windows of one application. Put parked
-    /// windows behind the visible row without activating each neighboring app.
-    func orderVisible(_ windows: [ManagedWindow], ids: Set<Int>, focused: Int?) async {
-        await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
-            queue.async {
-                let visible = windows.filter { ids.contains($0.descriptor.id) }
-                for window in visible where window.descriptor.id != focused {
-                    _ = AXUIElementPerformAction(window.element, kAXRaiseAction as CFString)
-                }
-                if let focused, let window = visible.first(where: { $0.descriptor.id == focused }) {
-                    _ = AXUIElementPerformAction(window.element, kAXRaiseAction as CFString)
-                }
-                continuation.resume()
             }
         }
     }
@@ -170,11 +152,8 @@ final class Accessibility: @unchecked Sendable {
     }
 
     func move(_ windows: [ManagedWindow], moves: [Move], animationDuration: Double = 0,
-              nonAnimatedWindowIDs: Set<Int> = [],
-              scrollingMotion: ScrollingMotion? = nil,
               onAnimation: (@MainActor (Bool) -> Void)? = nil) async -> MoveReport {
         guard !moves.isEmpty, !Task.isCancelled else { return MoveReport() }
-        var logicalFrames: [Int: Rect]?
         var pending = moves
         var lastErrors: [Int: String] = [:]
         var actualFrames: [Int: Rect] = [:]
@@ -195,10 +174,10 @@ final class Accessibility: @unchecked Sendable {
         }
         if restored { try? await Task.sleep(nanoseconds: 300_000_000) }
         if animationDuration > 0, !Task.isCancelled {
-            logicalFrames = await animate(windows, moves: moves, duration: animationDuration, nonAnimatedWindowIDs: nonAnimatedWindowIDs, scrollingMotion: scrollingMotion, onAnimation: onAnimation)
+            await animate(windows, moves: moves, duration: animationDuration, onAnimation: onAnimation)
         }
         // Allow apps/WindowServer to settle before checking, then correct only failed targets.
-        for settlingDelay in [40_000_000, 150_000_000, 300_000_000, 600_000_000] as [UInt64] {
+        for settlingDelay in [40_000_000, 120_000_000, 240_000_000] as [UInt64] {
             guard !Task.isCancelled else { break }
             let batch = pending
             let errors: [Int: String] = await withCheckedContinuation { continuation in
@@ -216,7 +195,7 @@ final class Accessibility: @unchecked Sendable {
                     let current = Self.frame(window.element)
                     if let current, Self.close(current, target, tolerance: 1) { continue }
                     let needsResize = current.map { abs($0.width - target.width) > 1 || abs($0.height - target.height) > 1 } ?? true
-                    var point = CGPoint(x: target.x, y: target.y)
+                    var point = CGPoint(x: target.x.rounded(), y: target.y.rounded())
                     var size = CGSize(width: target.width, height: target.height)
                     guard let p = AXValueCreate(.cgPoint, &point), let s = AXValueCreate(.cgSize, &size) else { continue }
                     // Shrink before moving across displays; expand after reaching the destination.
@@ -248,7 +227,7 @@ final class Accessibility: @unchecked Sendable {
                         guard let window = windows.first(where: { $0.descriptor.id == move.windowID }),
                               let current = Self.frame(window.element),
                               abs(current.x - move.frame.x) > 1 || abs(current.y - move.frame.y) > 1 else { continue }
-                        var point = CGPoint(x: move.frame.x, y: move.frame.y)
+                        var point = CGPoint(x: move.frame.x.rounded(), y: move.frame.y.rounded())
                         if let value = AXValueCreate(.cgPoint, &point) {
                             _ = AXUIElementSetAttributeValue(window.element, kAXPositionAttribute as CFString, value)
                             repositioned = true
@@ -275,7 +254,7 @@ final class Accessibility: @unchecked Sendable {
             }
             if pending.isEmpty { break }
         }
-        var report = MoveReport(actualFrames: actualFrames, logicalFrames: logicalFrames, succeeded: moves.count - pending.count, requested: moves.count)
+        var report = MoveReport(actualFrames: actualFrames, succeeded: moves.count - pending.count, requested: moves.count)
         for move in moves {
             let name = windows.first { $0.descriptor.id == move.windowID }?.descriptor.bundleID ?? "Unknown app"
             let actual = actualFrames[move.windowID].map(Self.describe) ?? "unavailable"
@@ -288,9 +267,7 @@ final class Accessibility: @unchecked Sendable {
     }
 
     private func animate(_ windows: [ManagedWindow], moves: [Move], duration: Double,
-                         nonAnimatedWindowIDs: Set<Int>,
-                         scrollingMotion: ScrollingMotion?,
-                         onAnimation: (@MainActor (Bool) -> Void)?) async -> [Int: Rect]? {
+                         onAnimation: (@MainActor (Bool) -> Void)?) async {
         // Capture fresh starts after restoration. Use elapsed time, not a fixed frame
         // count, so a slow AX client cannot turn a short transition into a long queue.
         let starts: [Int: Rect] = await withCheckedContinuation { continuation in
@@ -302,32 +279,24 @@ final class Accessibility: @unchecked Sendable {
                 continuation.resume(returning: frames)
             }
         }
-        guard !Task.isCancelled else { return scrollingMotion?.starts }
+        guard !Task.isCancelled else { return }
         guard moves.contains(where: { move in
             starts[move.windowID].map { !Self.close($0, move.frame, tolerance: 4) } ?? false
-        }) else { return scrollingMotion?.ends }
+        }) else { return }
         await onAnimation?(true)
         let started = ProcessInfo.processInfo.systemUptime
-        var firstTick = true
-        var lastProgress = 0.0
         while !Task.isCancelled {
             let frameStarted = ProcessInfo.processInfo.systemUptime
             let progress = min(1, (ProcessInfo.processInfo.systemUptime - started) / duration)
-            let placeParked = firstTick
-            firstTick = false
             await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
                 queue.async {
                     for move in moves {
                         guard let start = starts[move.windowID], !Self.close(start, move.frame, tolerance: 1),
                               let window = windows.first(where: { $0.descriptor.id == move.windowID }) else { continue }
-                        let stripFrame = scrollingMotion?.frame(for: move.windowID, progress: progress)
-                        if stripFrame == nil, nonAnimatedWindowIDs.contains(move.windowID), !placeParked { continue }
-                        let frame = stripFrame ?? (nonAnimatedWindowIDs.contains(move.windowID) ? move.frame : WindowTransition.frame(from: start, to: move.frame, progress: progress))
+                        let frame = WindowTransition.frame(from: start, to: move.frame, progress: progress)
                         var size = CGSize(width: frame.width, height: frame.height)
-                        var point = CGPoint(x: frame.x, y: frame.y)
+                        var point = CGPoint(x: frame.x.rounded(), y: frame.y.rounded())
                         if let p = AXValueCreate(.cgPoint, &point) {
-                            // Column navigation is translation-only. Resizing Chromium
-                            // on every tick forces unnecessary layout and repaint work.
                             if abs(start.width - move.frame.width) > 1 || abs(start.height - move.frame.height) > 1,
                                let s = AXValueCreate(.cgSize, &size) {
                                 _ = AXUIElementSetAttributeValue(window.element, kAXSizeAttribute as CFString, s)
@@ -338,7 +307,6 @@ final class Accessibility: @unchecked Sendable {
                     continuation.resume()
                 }
             }
-            lastProgress = progress
             if progress >= 1 { break }
             // AX writes consume part of the frame budget; do not add a full frame
             // of sleep after them or the animation slows as the window count grows.
@@ -346,7 +314,6 @@ final class Accessibility: @unchecked Sendable {
             if remaining > 0 { try? await Task.sleep(nanoseconds: UInt64(remaining * 1_000_000_000)) }
         }
         await onAnimation?(false)
-        return scrollingMotion?.logicalFrames(progress: lastProgress)
     }
 
     private static func attribute<T>(_ element: AXUIElement, _ name: String) -> T? {
@@ -387,7 +354,7 @@ final class Accessibility: @unchecked Sendable {
     // Resolve dynamically: this macOS SPI is also used by window managers such as
     // yabai. If unavailable, retain the public geometry-based visibility fallback.
     // A stable WindowServer ID prevents asynchronous AX frames from dropping a
-    // moving window or matching two parked windows to the same server window.
+    // moving window or confusing windows with the same geometry.
     private typealias GetWindowNumber = @convention(c) (AXUIElement, UnsafeMutablePointer<CGWindowID>) -> AXError
     private static let getWindowNumber: GetWindowNumber? = {
         guard let symbol = dlsym(UnsafeMutableRawPointer(bitPattern: -2), "_AXUIElementGetWindow") else { return nil }

@@ -1,461 +1,424 @@
 {
-  "version": 1,
-  "automaticTiling": true,
-  "algorithm": "bsp",
-  "gap": 12,
-  "excludedBundleIDs": [
+  "algorithm" : "bsp",
+  "animationDuration" : 0.18,
+  "appColors" : {
+
+  },
+  "automaticTiling" : true,
+  "blurIntensity" : 1,
+  "blurUnfocusedWindows" : false,
+  "borderColor" : "#A6F3C2",
+  "borderEnabled" : true,
+  "borderWidth" : 3,
+  "excludedBundleIDs" : [
     "local.hypermac.app",
     "com.apple.systempreferences"
   ],
-  "shortcuts": [
+  "focusedBorderOnly" : true,
+  "gap" : 12,
+  "layouts" : [
     {
-      "key": "h",
-      "modifiers": [
-        "ctrl",
-        "alt",
-        "cmd",
-        "shift"
+      "adaptive" : true,
+      "applyGap" : true,
+      "defaultScreenMode" : "floating",
+      "displayExcludedBundleIDs" : {
+
+      },
+      "displayModes" : {
+
+      },
+      "excludedBundleIDs" : [
+
       ],
-      "action": "focusWindow",
-      "target": "left"
-    },
-    {
-      "key": "l",
-      "modifiers": [
-        "ctrl",
-        "alt",
-        "cmd",
-        "shift"
-      ],
-      "action": "focusWindow",
-      "target": "right"
-    },
-    {
-      "key": "return",
-      "modifiers": [
-        "ctrl",
-        "alt",
-        "cmd"
-      ],
-      "action": "launch",
-      "target": "@terminal"
-    },
-    {
-      "key": "return",
-      "modifiers": [
-        "ctrl",
-        "alt",
-        "cmd",
-        "shift"
-      ],
-      "action": "launch",
-      "target": "@browser"
-    },
-    {
-      "key": "b",
-      "modifiers": [
-        "ctrl",
-        "alt",
-        "cmd",
-        "shift"
-      ],
-      "action": "launch",
-      "target": "@browser"
-    },
-    {
-      "key": "f",
-      "modifiers": [
-        "ctrl",
-        "alt",
-        "cmd",
-        "shift"
-      ],
-      "action": "launch",
-      "target": "com.apple.finder"
-    },
-    {
-      "key": "m",
-      "modifiers": [
-        "ctrl",
-        "alt",
-        "cmd",
-        "shift"
-      ],
-      "action": "launch",
-      "target": "@music"
-    },
-    {
-      "key": "n",
-      "modifiers": [
-        "ctrl",
-        "alt",
-        "cmd",
-        "shift"
-      ],
-      "action": "launch",
-      "target": "@editor"
-    },
-    {
-      "key": "c",
-      "modifiers": [
-        "ctrl",
-        "alt",
-        "cmd",
-        "shift"
-      ],
-      "action": "launch",
-      "target": "com.apple.iCal"
-    },
-    {
-      "key": "e",
-      "modifiers": [
-        "ctrl",
-        "alt",
-        "cmd",
-        "shift"
-      ],
-      "action": "launch",
-      "target": "com.apple.mail"
-    },
-    {
-      "key": "a",
-      "modifiers": [
-        "ctrl",
-        "alt",
-        "cmd",
-        "shift"
-      ],
-      "action": "launch",
-      "target": "@ai"
-    },
-    {
-      "key": "g",
-      "modifiers": [
-        "ctrl",
-        "alt",
-        "cmd",
-        "shift"
-      ],
-      "action": "launch",
-      "target": "@messenger"
-    },
-    {
-      "key": "p",
-      "modifiers": [
-        "ctrl",
-        "alt",
-        "cmd",
-        "shift"
-      ],
-      "action": "launch",
-      "target": "com.apple.Photos"
-    },
-    {
-      "key": "s",
-      "modifiers": [
-        "ctrl",
-        "alt",
-        "cmd",
-        "shift"
-      ],
-      "action": "launch",
-      "target": "com.apple.Maps"
-    },
-    {
-      "key": "d",
-      "modifiers": [
-        "ctrl",
-        "alt",
-        "cmd",
-        "shift"
-      ],
-      "action": "launch",
-      "target": "com.docker.docker"
-    },
-    {
-      "key": "o",
-      "modifiers": [
-        "ctrl",
-        "alt",
-        "cmd",
-        "shift"
-      ],
-      "action": "launch",
-      "target": "@notes"
-    },
-    {
-      "key": "slash",
-      "modifiers": [
-        "ctrl",
-        "alt",
-        "cmd",
-        "shift"
-      ],
-      "action": "launch",
-      "target": "@passwords"
-    },
-    {
-      "key": "f",
-      "modifiers": [
-        "ctrl",
-        "alt",
-        "cmd"
-      ],
-      "action": "maximizeWindow",
-      "target": ""
-    },
-    {
-      "key": "minus",
-      "modifiers": [
-        "ctrl",
-        "alt",
-        "cmd"
-      ],
-      "action": "resizeWindow",
-      "target": "wider"
-    },
-    {
-      "key": "equal",
-      "modifiers": [
-        "ctrl",
-        "alt",
-        "cmd"
-      ],
-      "action": "resizeWindow",
-      "target": "narrower"
-    },
-    {
-      "key": "minus",
-      "modifiers": [
-        "ctrl",
-        "alt",
-        "cmd",
-        "shift"
-      ],
-      "action": "resizeWindow",
-      "target": "shorter"
-    },
-    {
-      "key": "equal",
-      "modifiers": [
-        "ctrl",
-        "alt",
-        "cmd",
-        "shift"
-      ],
-      "action": "resizeWindow",
-      "target": "taller"
-    },
-    {
-      "key": "t",
-      "modifiers": [
-        "ctrl",
-        "alt",
-        "cmd"
-      ],
-      "action": "toggleTiling",
-      "target": ""
-    },
-    {
-      "key": "r",
-      "modifiers": [
-        "ctrl",
-        "alt",
-        "cmd"
-      ],
-      "action": "retile",
-      "target": ""
-    },
-    {
-      "key": "left",
-      "modifiers": [
-        "ctrl",
-        "alt",
-        "cmd"
-      ],
-      "action": "focusWindow",
-      "target": "left"
-    },
-    {
-      "key": "left",
-      "modifiers": [
-        "ctrl",
-        "alt",
-        "cmd",
-        "shift"
-      ],
-      "action": "swapWindow",
-      "target": "left"
-    },
-    {
-      "key": "right",
-      "modifiers": [
-        "ctrl",
-        "alt",
-        "cmd"
-      ],
-      "action": "focusWindow",
-      "target": "right"
-    },
-    {
-      "key": "right",
-      "modifiers": [
-        "ctrl",
-        "alt",
-        "cmd",
-        "shift"
-      ],
-      "action": "swapWindow",
-      "target": "right"
-    },
-    {
-      "key": "up",
-      "modifiers": [
-        "ctrl",
-        "alt",
-        "cmd"
-      ],
-      "action": "focusWindow",
-      "target": "up"
-    },
-    {
-      "key": "up",
-      "modifiers": [
-        "ctrl",
-        "alt",
-        "cmd",
-        "shift"
-      ],
-      "action": "swapWindow",
-      "target": "up"
-    },
-    {
-      "key": "down",
-      "modifiers": [
-        "ctrl",
-        "alt",
-        "cmd"
-      ],
-      "action": "focusWindow",
-      "target": "down"
-    },
-    {
-      "key": "down",
-      "modifiers": [
-        "ctrl",
-        "alt",
-        "cmd",
-        "shift"
-      ],
-      "action": "swapWindow",
-      "target": "down"
+      "fallbackToPrimary" : false,
+      "name" : "Normal",
+      "placements" : [
+        {
+          "bundleID" : "com.apple.Safari",
+          "display" : "primary",
+          "frame" : {
+            "height" : 1,
+            "width" : 0.3333333333333333,
+            "x" : 0,
+            "y" : 0
+          },
+          "titleContains" : "",
+          "windowIndex" : 0
+        },
+        {
+          "bundleID" : "com.microsoft.VSCode",
+          "display" : "primary",
+          "frame" : {
+            "height" : 1,
+            "width" : 0.3333333333333333,
+            "x" : 0.3333333333333333,
+            "y" : 0
+          },
+          "titleContains" : "",
+          "windowIndex" : 0
+        },
+        {
+          "bundleID" : "com.microsoft.teams2",
+          "display" : "primary",
+          "frame" : {
+            "height" : 1,
+            "width" : 0.3333333333333333,
+            "x" : 0.6666666666666666,
+            "y" : 0
+          },
+          "titleContains" : "",
+          "windowIndex" : 0
+        }
+      ]
     }
   ],
-  "layouts": [
+  "monitorProfiles" : [
+
+  ],
+  "mouseResize" : true,
+  "shortcuts" : [
     {
-      "name": "Normal",
-      "placements": [
-        {
-          "bundleID": "com.apple.Safari",
-          "titleContains": "",
-          "windowIndex": 0,
-          "display": "primary",
-          "frame": {
-            "x": 0.0,
-            "y": 0,
-            "width": 0.3333333333333333,
-            "height": 1
-          }
-        },
-        {
-          "bundleID": "com.microsoft.VSCode",
-          "titleContains": "",
-          "windowIndex": 0,
-          "display": "primary",
-          "frame": {
-            "x": 0.3333333333333333,
-            "y": 0,
-            "width": 0.3333333333333333,
-            "height": 1
-          }
-        },
-        {
-          "bundleID": "com.microsoft.teams2",
-          "titleContains": "",
-          "windowIndex": 0,
-          "display": "primary",
-          "frame": {
-            "x": 0.6666666666666666,
-            "y": 0,
-            "width": 0.3333333333333333,
-            "height": 1
-          }
-        }
+      "action" : "focusWindow",
+      "key" : "h",
+      "modifiers" : [
+        "ctrl",
+        "alt",
+        "cmd",
+        "shift"
       ],
-      "adaptive": true,
-      "fallbackToPrimary": true,
-      "applyGap": true
+      "target" : "left"
     },
     {
-      "name": "Horizontal",
-      "placements": [
-        {
-          "bundleID": "com.apple.Safari",
-          "titleContains": "",
-          "windowIndex": 0,
-          "display": "primary",
-          "frame": {
-            "x": 0,
-            "y": 0,
-            "width": 0.5,
-            "height": 1
-          }
-        },
-        {
-          "bundleID": "com.microsoft.VSCode",
-          "titleContains": "",
-          "windowIndex": 0,
-          "display": "primary",
-          "frame": {
-            "x": 0,
-            "y": 0,
-            "width": 0.5,
-            "height": 1
-          }
-        },
-        {
-          "bundleID": "com.microsoft.teams2",
-          "titleContains": "",
-          "windowIndex": 0,
-          "display": "primary",
-          "frame": {
-            "x": 0,
-            "y": 0,
-            "width": 0.5,
-            "height": 1
-          }
-        }
+      "action" : "focusWindow",
+      "key" : "l",
+      "modifiers" : [
+        "ctrl",
+        "alt",
+        "cmd",
+        "shift"
       ],
-      "adaptive": false,
-      "fallbackToPrimary": true,
-      "applyGap": true,
-      "scrolling": {
-        "display": "primary",
-        "allWindows": false,
-        "width": 0.5,
-        "centerFocus": true,
-        "hyperScroll": false,
-        "wrap": false,
-        "animationDuration": 0.22
-      }
+      "target" : "right"
+    },
+    {
+      "action" : "launch",
+      "key" : "return",
+      "modifiers" : [
+        "ctrl",
+        "alt",
+        "cmd"
+      ],
+      "target" : "@terminal"
+    },
+    {
+      "action" : "launch",
+      "key" : "return",
+      "modifiers" : [
+        "ctrl",
+        "alt",
+        "cmd",
+        "shift"
+      ],
+      "target" : "@browser"
+    },
+    {
+      "action" : "launch",
+      "key" : "b",
+      "modifiers" : [
+        "ctrl",
+        "alt",
+        "cmd",
+        "shift"
+      ],
+      "target" : "@browser"
+    },
+    {
+      "action" : "launch",
+      "key" : "f",
+      "modifiers" : [
+        "ctrl",
+        "alt",
+        "cmd",
+        "shift"
+      ],
+      "target" : "com.apple.finder"
+    },
+    {
+      "action" : "launch",
+      "key" : "m",
+      "modifiers" : [
+        "ctrl",
+        "alt",
+        "cmd",
+        "shift"
+      ],
+      "target" : "@music"
+    },
+    {
+      "action" : "launch",
+      "key" : "n",
+      "modifiers" : [
+        "ctrl",
+        "alt",
+        "cmd",
+        "shift"
+      ],
+      "target" : "@editor"
+    },
+    {
+      "action" : "launch",
+      "key" : "c",
+      "modifiers" : [
+        "ctrl",
+        "alt",
+        "cmd",
+        "shift"
+      ],
+      "target" : "com.apple.iCal"
+    },
+    {
+      "action" : "launch",
+      "key" : "e",
+      "modifiers" : [
+        "ctrl",
+        "alt",
+        "cmd",
+        "shift"
+      ],
+      "target" : "com.apple.mail"
+    },
+    {
+      "action" : "launch",
+      "key" : "a",
+      "modifiers" : [
+        "ctrl",
+        "alt",
+        "cmd",
+        "shift"
+      ],
+      "target" : "@ai"
+    },
+    {
+      "action" : "launch",
+      "key" : "g",
+      "modifiers" : [
+        "ctrl",
+        "alt",
+        "cmd",
+        "shift"
+      ],
+      "target" : "@messenger"
+    },
+    {
+      "action" : "launch",
+      "key" : "p",
+      "modifiers" : [
+        "ctrl",
+        "alt",
+        "cmd",
+        "shift"
+      ],
+      "target" : "com.apple.Photos"
+    },
+    {
+      "action" : "launch",
+      "key" : "s",
+      "modifiers" : [
+        "ctrl",
+        "alt",
+        "cmd",
+        "shift"
+      ],
+      "target" : "com.apple.Maps"
+    },
+    {
+      "action" : "launch",
+      "key" : "d",
+      "modifiers" : [
+        "ctrl",
+        "alt",
+        "cmd",
+        "shift"
+      ],
+      "target" : "com.docker.docker"
+    },
+    {
+      "action" : "launch",
+      "key" : "o",
+      "modifiers" : [
+        "ctrl",
+        "alt",
+        "cmd",
+        "shift"
+      ],
+      "target" : "@notes"
+    },
+    {
+      "action" : "launch",
+      "key" : "slash",
+      "modifiers" : [
+        "ctrl",
+        "alt",
+        "cmd",
+        "shift"
+      ],
+      "target" : "@passwords"
+    },
+    {
+      "action" : "maximizeWindow",
+      "key" : "f",
+      "modifiers" : [
+        "ctrl",
+        "alt",
+        "cmd"
+      ],
+      "target" : ""
+    },
+    {
+      "action" : "resizeWindow",
+      "key" : "minus",
+      "modifiers" : [
+        "ctrl",
+        "alt",
+        "cmd"
+      ],
+      "target" : "wider"
+    },
+    {
+      "action" : "resizeWindow",
+      "key" : "equal",
+      "modifiers" : [
+        "ctrl",
+        "alt",
+        "cmd"
+      ],
+      "target" : "narrower"
+    },
+    {
+      "action" : "resizeWindow",
+      "key" : "minus",
+      "modifiers" : [
+        "ctrl",
+        "alt",
+        "cmd",
+        "shift"
+      ],
+      "target" : "shorter"
+    },
+    {
+      "action" : "resizeWindow",
+      "key" : "equal",
+      "modifiers" : [
+        "ctrl",
+        "alt",
+        "cmd",
+        "shift"
+      ],
+      "target" : "taller"
+    },
+    {
+      "action" : "toggleTiling",
+      "key" : "t",
+      "modifiers" : [
+        "ctrl",
+        "alt",
+        "cmd"
+      ],
+      "target" : ""
+    },
+    {
+      "action" : "retile",
+      "key" : "r",
+      "modifiers" : [
+        "ctrl",
+        "alt",
+        "cmd"
+      ],
+      "target" : ""
+    },
+    {
+      "action" : "focusWindow",
+      "key" : "left",
+      "modifiers" : [
+        "ctrl",
+        "alt",
+        "cmd"
+      ],
+      "target" : "left"
+    },
+    {
+      "action" : "swapWindow",
+      "key" : "left",
+      "modifiers" : [
+        "ctrl",
+        "alt",
+        "cmd",
+        "shift"
+      ],
+      "target" : "left"
+    },
+    {
+      "action" : "focusWindow",
+      "key" : "right",
+      "modifiers" : [
+        "ctrl",
+        "alt",
+        "cmd"
+      ],
+      "target" : "right"
+    },
+    {
+      "action" : "swapWindow",
+      "key" : "right",
+      "modifiers" : [
+        "ctrl",
+        "alt",
+        "cmd",
+        "shift"
+      ],
+      "target" : "right"
+    },
+    {
+      "action" : "focusWindow",
+      "key" : "up",
+      "modifiers" : [
+        "ctrl",
+        "alt",
+        "cmd"
+      ],
+      "target" : "up"
+    },
+    {
+      "action" : "swapWindow",
+      "key" : "up",
+      "modifiers" : [
+        "ctrl",
+        "alt",
+        "cmd",
+        "shift"
+      ],
+      "target" : "up"
+    },
+    {
+      "action" : "focusWindow",
+      "key" : "down",
+      "modifiers" : [
+        "ctrl",
+        "alt",
+        "cmd"
+      ],
+      "target" : "down"
+    },
+    {
+      "action" : "swapWindow",
+      "key" : "down",
+      "modifiers" : [
+        "ctrl",
+        "alt",
+        "cmd",
+        "shift"
+      ],
+      "target" : "down"
     }
   ],
-  "borderEnabled": true,
-  "borderWidth": 3,
-  "appColors": {
-    "com.apple.Safari": "#59A6FF",
-    "com.apple.Terminal": "#51CDA3",
-    "com.apple.TextEdit": "#D995FA"
-  },
-  "borderColor": "#A6F3C2"
+  "version" : 1
 }

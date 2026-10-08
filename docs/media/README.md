@@ -1,50 +1,39 @@
-# HyperMac 0.7.0 feature tour
+# HyperMac 0.8.0 feature tour
 
-Captured from installed **0.7.0 builds 26–28** on Apple Silicon, on 8 October 2026.
+Captured from installed **0.8.0 build 34** on Apple Silicon, on 8 October 2026.
 
-![HyperMac feature walkthrough](hypermac-feature-tour.gif)
+![HyperMac normal-layout and keyboard-shortcut tour](hypermac-feature-tour.gif)
 
-This 80-second looping GIF contains 16 captioned slides. It is a **screenshot walkthrough**, not a recording of window movement or a performance benchmark. Horizontal scrolling is experimental and has not passed visual acceptance on the side-by-side laptop/Odyssey setup. The monitor-profile slide is explicitly labeled as an illustration; docking is not recorded. Undo/redo controls are explained, not demonstrated as a live restoration.
+This 49.5-second looping GIF contains nine captioned scenes from the actual app. It is a **screenshot walkthrough**, not a recording or benchmark of window movement. Tiling was paused during capture. The earlier four-window preview was captured on the same build; no layout was applied for the tour.
+
+The tour covers ordinary per-display layouts, selected-app templates, editable custom positions, preview, blur and borders, searchable shortcuts and the recorder. Docking, undo/redo restoration, actual mouse-driven window tiling and live multi-display transitions are not demonstrated.
 
 ## Current screenshots
 
-These are actual app-window captures. The app content and control states have not been retouched. Some views show inactive-window styling or partially visible content at a scroll boundary. The selected apps, border color, 10-point neighbor space and timings are customized settings, not defaults. Layout diagrams show saved templates, not every live window. No document contents or account pages are included.
+The app content and control states have not been retouched. The blur scene crops the General screenshot to enlarge its appearance controls. App choices, bindings, colors and timings shown here are customized settings, not defaults. The temporary “Workspace demo” copy was removed after capture, and the saved user configuration was verified unchanged byte for byte.
 
 | Screenshot | Features |
 | --- | --- |
-| [Automatic tiling](screenshots/11-general-070.png) | Runtime controls, mouse resizing, gaps and transitions |
-| [Focus appearance](screenshots/12-blur-borders-070.png) | Focus-only border, blur Off switch and intensity |
-| [Shortcuts](screenshots/26-shortcuts-070.png) | Search, filters, compact action rows and app launchers |
-| [Horizontal navigation bindings](screenshots/27-navigation-shortcuts-070.png) | Hyper+H/L and directional focus |
-| [Shortcut recorder](screenshots/28-recorder-070.png) | Press a combination; Escape cancels |
-| [Normal layout](screenshots/16-normal-layout-070.png) | Adaptive preset, app library, preview and duplicate controls |
-| [Horizontal monitor diagram](screenshots/17-horizontal-diagram-070.png) | Screen selector and editable app rectangles |
-| [Columns and groups](screenshots/18-horizontal-groups-070.png) | Two apps in one column, width handles and direct × removal |
-| [App width inspector](screenshots/19-app-width-070.png) | Width presets, full width, reorder, group and separate |
-| [Screen-first editor](screenshots/24-screen-layouts-070.png) | Current screen cards, separate modes and per-screen app lists |
-| [Destination preview](screenshots/25-per-screen-preview-070.png) | Odyssey horizontal strip and laptop automatic tiling, drawn on their assigned screens |
-| [Scrolling options](screenshots/21-scroll-options-070.png) | Neighbor space, center focus, Hyper-scroll, wrap and timing |
+| [General](screenshots/30-general-080.png) | Native toolbar, tiling controls, gaps, transitions, focus borders and blur intensity |
+| [Shortcuts](screenshots/31-shortcuts-080.png) | Search, categories, app launchers, edit and removal controls |
+| [Directional focus](screenshots/32-focus-shortcuts-080.png) | Search for focus; Hyper+H/L and directional bindings |
+| [Recorder](screenshots/33-recorder-080.png) | Press a combination; Escape cancels |
+| [Per-display layouts](screenshots/34-layouts-080.png) | Screen card and independent arrangement mode |
+| [Selected apps](screenshots/36-selected-apps-080.png) | Applications picker, app library, direct removal and adaptive template |
+| [Custom positions](screenshots/37-custom-positions-080.png) | Editable rectangles, resize handle, grid, half-screen presets and app color |
+| [Destination preview](normal-layout-preview-080.png) | Four open windows planned on the built-in display |
+| [Current single-window preview](screenshots/35-preview-080.png) | Preview captured during this tour session |
 
 ![Interface gallery](overview.png)
 
-The earlier `01`–`10` screenshots are retained as historical 0.6.2 captures and are not used by the current tour.
+[Static tour poster](tour-poster.png) · [User guide](../../README.md) · [Remaining acceptance checks](../KNOWN-ISSUES.md)
 
 ## Rebuild
 
-With Python 3 and Pillow installed, run:
+With Python 3 and Pillow installed:
 
 ```sh
 python3 scripts/build-media.py
 ```
 
-This regenerates the GIF, poster and gallery from the checked-in captures. It does not control the app, change settings or publish anything.
-
-### Screen-first editor update — build 27
-
-[`22-screen-first-layouts-070.png`](screenshots/22-screen-first-layouts-070.png) shows the installed Layouts redesign: visible per-screen mode cards, a shared screen/mode/app selection, a compact header, and the screen's own app list. The tour now includes the updated editor and preview in captures 24–25; the older detail views retain their build-26 chrome. This screenshot demonstrates the editor, not animation smoothness.
-
-[`23-correct-display-preview-070.png`](screenshots/23-correct-display-preview-070.png) shows build 28's corrected Preview & apply destination: the four matching open apps belong to the Odyssey strip; the laptop is left unchanged. Only the fully visible scrolling column is drawn in the monitor preview; the count includes parked columns. Apply was verified with 4/4 actual placements on Odyssey.
-
-### Refreshed tour — build 28
-
-Captures 24–25 show the current per-screen editor and Preview & apply with Odyssey horizontal scrolling and laptop automatic tiling. Captures 26–28 show the current compact Shortcuts page, filtered navigation actions and recorder. Capturing these screens did not apply a layout or change bindings. Other detail images were captured during the documented build-26 feature checks; they remain representative of those controls but use the older header.
+The script regenerates the GIF, poster and gallery from checked-in captures. It does not operate the app, change settings or publish anything. Older numbered `01`–`28` screenshots remain as historical captures of 0.6.2/0.7.0; none are used by the current tour. Their horizontal scrolling controls were removed in 0.8.0.
