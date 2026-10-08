@@ -10,6 +10,12 @@ HyperMac is a native macOS window manager that automatically arranges your apps,
 
 > **0.6.2 · Development preview · Apple Silicon only.** Intel support has been retired. Clean-Mac installation and the full window-management compatibility matrix are still being validated. Preview DMGs are ad-hoc signed; there is **no notarized production release**. See [release readiness](RELEASE-READINESS.md) for the remaining work.
 
+## Feature tour
+
+![HyperMac feature walkthrough](docs/media/hypermac-feature-tour.gif)
+
+A captioned tour of the interface, including a labeled monitor-profile illustration. This is a screenshot walkthrough, not a live animation recording. [Browse the screenshots and capture notes](docs/media/README.md).
+
 ## What you can do
 
 - **Tile automatically:** opening, closing, minimizing or restoring eligible windows redistributes available space. Dynamic splits is the default for new configurations.
