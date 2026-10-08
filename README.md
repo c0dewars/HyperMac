@@ -46,7 +46,7 @@ Karabiner-Elements is optional. If you already map Caps Lock to Hyper, that mapp
 
 ## Preview downloads
 
-The normal-only **0.8.0 build 34** source update does not yet have a published GitHub release. Existing [Releases](https://github.com/c0dewars/HyperMac/releases) may contain the older scrolling implementation. See the [remaining checks](docs/KNOWN-ISSUES.md) before distributing a new build.
+Download [**HyperMac 0.8.0 build 34 — normal-layout preview**](https://github.com/c0dewars/HyperMac/releases/tag/preview-0.8.0-8538581). The release includes the Apple Silicon DMG and its SHA-256 checksum. It replaces the older scrolling implementation. See the [remaining checks](docs/KNOWN-ISSUES.md) before relying on it for daily use.
 
 Authorized repository users can run **Actions → Apple Silicon preview DMG → Run workflow**. The default creates a downloadable build artifact. Enable **Publish an unnotarized prerelease** on `main` to attach the DMG and SHA-256 checksum to [Releases](https://github.com/c0dewars/HyperMac/releases). Private repository access is required.
 

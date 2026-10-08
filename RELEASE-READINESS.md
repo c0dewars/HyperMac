@@ -1,6 +1,6 @@
 # Release readiness
 
-**0.8.0 build 34 is a local validation build, not a certified production release.** Horizontal scrolling has been removed. Normal per-display tiling is the supported direction.
+**0.8.0 build 34 is a downloadable test prerelease, not a certified production release.** Horizontal scrolling has been removed. Normal per-display tiling is the supported direction.
 
 The release build and standalone geometry, lifecycle, migration and shortcut suites pass locally. These include five-display arrangements, negative coordinates, portrait/ultrawide geometry, app minimums, local-first app matching and missing-display handling. Settings UI checks cover native navigation, padding click targets, creation, duplication, removal, diagram dragging/resizing and autosave.
 
@@ -11,7 +11,7 @@ Before calling this stable:
 3. Pass arm64 CI and XCTest on the final commit; verify the packaged DMG and install/upgrade it on a second Mac.
 4. Record supported app/macOS combinations and sustained idle/active resource use.
 
-See [remaining acceptance checks](docs/KNOWN-ISSUES.md) and [test evidence](TEST-RESULTS.md). Previous GitHub prereleases still contain the older implementation; no 0.8.0 DMG release has been published. The updated README and feature tour describe the normal-only source update.
+See [remaining acceptance checks](docs/KNOWN-ISSUES.md) and [test evidence](TEST-RESULTS.md). [The 0.8.0 prerelease](https://github.com/c0dewars/HyperMac/releases/tag/preview-0.8.0-8538581) provides the normal-only Apple Silicon DMG and SHA-256 checksum. GitHub Actions builds the package from merged commit `8538581` after tests and packaging verification. Earlier prereleases retain the removed scrolling implementation.
 
 ## Distribution
 
