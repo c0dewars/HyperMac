@@ -65,12 +65,26 @@ final class SettingsModel: ObservableObject {
     }
 }
 
+// Keep transient settings UI state in one observable object owned by SettingsView.
+@MainActor
+final class SettingsUIState: ObservableObject {
+    @Published var section = "General"
+    @Published var showDetails = false
+}
+
 @MainActor
 struct SettingsView: View {
     @ObservedObject var model: SettingsModel
 
-    @State private var section = "General"
-    @State private var showDetails = false
+    @StateObject private var ui = SettingsUIState()
+    private var section: String {
+        get { ui.section }
+        nonmutating set { ui.section = newValue }
+    }
+    private var showDetails: Bool {
+        get { ui.showDetails }
+        nonmutating set { ui.showDetails = newValue }
+    }
     private let sections = [("General", "slider.horizontal.3"), ("Shortcuts", "keyboard"),
                             ("Layouts", "rectangle.split.3x1"), ("Displays", "display.2")]
 
