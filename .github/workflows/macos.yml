@@ -15,7 +15,7 @@ jobs:
         with:
           persist-credentials: false
       - name: Test core and build native app
-        run: bash scripts/build.sh --test --build-only --ad-hoc
+        run: bash scripts/build.sh --test
       - name: Run lifecycle and geometry regressions
         run: |
           swiftc Sources/HyperMacCore/*.swift scripts/check-shortcuts.swift -o "$RUNNER_TEMP/hypermac-checks"

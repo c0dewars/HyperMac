@@ -10,6 +10,12 @@ HyperMac is a native macOS window manager that automatically arranges your apps,
 
 > **0.8.0 build 34 · Development preview · Apple Silicon only.** Intel support has been retired. Clean-Mac installation and the full window-management compatibility matrix are still being validated. Preview DMGs are ad-hoc signed; there is **no notarized production release**. See [release readiness](RELEASE-READINESS.md) for the remaining work.
 
+```sh
+brew install --cask c0dewars/tap/hypermac
+```
+
+Then grant Accessibility permission. See [Install](#install) for first-launch details.
+
 ## Normal layouts, per display
 
 Horizontal scrolling has been removed. Each display has independent ordinary tiling or custom positions. The settings window is larger, uses a native macOS toolbar, and remembers its size and position.
@@ -35,55 +41,45 @@ A 49.5-second screenshot tour of the redesigned settings, per-display normal lay
 - **Switch layouts when docking:** save monitor profiles for your connected display setups.
 - **Resize with the mouse:** in automatic Dynamic splits mode, drag a normal window edge or corner to adjust neighboring tiles when you release it.
 
-## Requirements
+## Install
 
-- macOS **14 or later**, on **Apple Silicon (M1 or newer)**. This is the declared minimum; not every supported macOS version has been tested.
-- Accessibility permission so HyperMac can move and resize windows.
-- Xcode Command Line Tools only when building from source. Full Xcode is needed to run XCTest; neither is required to install a DMG.
-- Access to this private GitHub repository to download source or clone it.
+```sh
+brew install --cask c0dewars/tap/hypermac
+```
 
-Karabiner-Elements is optional. If you already map Caps Lock to Hyper, that mapping works with HyperMac's Hyper shortcuts.
+Then:
 
-## Preview downloads
-
-Download [**HyperMac 0.8.0 build 34 — normal-layout preview**](https://github.com/c0dewars/HyperMac/releases/tag/preview-0.8.0-8538581). The release includes the Apple Silicon DMG and its SHA-256 checksum. It replaces the older scrolling implementation. See the [remaining checks](docs/KNOWN-ISSUES.md) before relying on it for daily use.
-
-Authorized repository users can run **Actions → Apple Silicon preview DMG → Run workflow**. The default creates a downloadable build artifact. Enable **Publish an unnotarized prerelease** on `main` to attach the DMG and SHA-256 checksum to [Releases](https://github.com/c0dewars/HyperMac/releases). Private repository access is required.
-
-These are development previews: Gatekeeper may block them, and replacing a locally signed copy may require refreshing Accessibility permission. Source installation below preserves a stable local signing identity.
-
-If a downloaded preview says **the developer cannot be verified**, move it into Applications, try opening it, then use **System Settings → Privacy & Security → Open Anyway** for HyperMac if you choose to trust it. Follow [Apple's instructions](https://support.apple.com/102445). HyperMac runs in the menu bar; enable Accessibility on each Mac after installation.
-
-No paid Apple account is needed for this installation path. [Sharing a preview with friends](docs/DISTRIBUTION.md) explains the package, first launch and updates. Signing status is separate from app stability; a complete compatibility matrix is still pending.
-
-## Install from source
-
-This is currently a developer/tester installation. Each Mac creates its own local signing identity; this does not produce an Apple-notarized release for redistribution.
-
-1. Sign into GitHub, open [HyperMac](https://github.com/c0dewars/HyperMac), and choose **Code → Download ZIP**. Extract the ZIP outside Trash. Alternatively, clone the repository using your GitHub credentials.
-2. Install Command Line Tools if needed:
-
-   ```sh
-   xcode-select --install
-   ```
-
-   Complete installation before continuing.
-3. Open Terminal in the extracted project folder. Quit an existing HyperMac instance, then run:
-
-   ```sh
-   bash scripts/setup-local-signing.sh
-   bash scripts/build.sh
-   ```
-
-   The setup script creates a signing certificate in your login Keychain. Authenticate directly in macOS if prompted. Keep this identity for future updates; do not share its private key.
-4. The build script installs and opens the app, using `/Applications` or `~/Applications`. Keep the app in that location.
-5. Open **System Settings → Privacy & Security → Accessibility**. Add the installed HyperMac app and enable its switch. HyperMac's General tab shows the exact installed path if needed.
+1. Open **HyperMac** from Applications. It is a development preview that is ad-hoc signed, not notarized. If macOS says it **cannot verify the developer**, use **System Settings → Privacy & Security → Open Anyway** for HyperMac if you choose to trust it. See [Apple's instructions](https://support.apple.com/102445). Do not disable Gatekeeper globally.
+2. Open **System Settings → Privacy & Security → Accessibility** and enable HyperMac so it can move and resize windows. HyperMac's General tab shows the installed path if needed.
+3. HyperMac runs in the menu bar. Click its icon to open Settings.
 
 Automatic tiling is enabled by default for new configurations. Existing settings are preserved. Screen Recording permission is not requested.
 
-### Update an existing installation
+### Update or uninstall
 
-Download the updated source, quit HyperMac, and run `bash scripts/build.sh` from the new project folder. Reuse the signing identity on that Mac. The installer checks signing continuity; do not delete the certificate or regenerate it for each update.
+```sh
+brew upgrade --cask hypermac
+```
+
+Each preview is ad-hoc signed, so macOS may drop Accessibility permission after an upgrade. If windows stop moving, remove HyperMac from the Accessibility list and add it again.
+
+```sh
+brew uninstall --cask hypermac
+```
+
+Add `--zap` to also delete your settings in `~/.config/hypermac`. Remove the Accessibility entry manually.
+
+### Requirements
+
+- macOS **14 or later**, on **Apple Silicon (M1 or newer)**. This is the declared minimum; not every supported macOS version has been tested.
+- [Homebrew](https://brew.sh).
+- Accessibility permission.
+
+Karabiner-Elements is optional. If you already map Caps Lock to Hyper, that mapping works with HyperMac's Hyper shortcuts.
+
+### Manual download
+
+Each [GitHub release](https://github.com/c0dewars/HyperMac/releases) includes the Apple Silicon DMG and its SHA-256 checksum. Open the DMG, drag HyperMac to Applications, then follow the steps above. See the [remaining checks](docs/KNOWN-ISSUES.md) before relying on it for daily use, and [Distribution](docs/DISTRIBUTION.md) for sharing a preview with friends.
 
 ## Your first workspace
 
@@ -154,7 +150,7 @@ The **Shortcuts** tab lists all bindings and lets you change launch targets. Cli
 
 **A window will not fit:** some apps enforce minimum sizes. Reduce gaps, use fewer windows on that display, or leave that app floating. The status footer reports verified placements and constraints.
 
-**An update loses Accessibility access:** confirm System Settings points to the installed copy. If necessary, remove the stale entry and add that same installed app again. Preserve the local signing identity across builds.
+**An update loses Accessibility access:** confirm System Settings points to the installed copy in Applications. Remove the stale entry and add the installed app again.
 
 **Two tools keep moving windows:** pause the other window manager while using HyperMac. Stage Manager and other tilers can compete for window positions.
 
@@ -166,24 +162,23 @@ Use **Copy troubleshooting report** and include the report, macOS version, app v
 
 Settings are stored locally at `~/.config/hypermac/config.json`. Back up this file before manual edits. [The example configuration](examples/config.json) shows the format. Display-specific layouts may need adjustment when copied to another Mac. There is no automatic settings sync.
 
-To uninstall, quit HyperMac, remove its installed app from Applications, and remove its Accessibility entry. You can keep the configuration and signing identity for a future reinstall. Delete them only if you no longer need your settings or signing continuity.
+To uninstall, run `brew uninstall --cask hypermac` (or delete the app from Applications) and remove its Accessibility entry. Your configuration stays unless you use `--zap` or delete `~/.config/hypermac`.
 
 ## Development and validation
 
-Build and test on a Mac with full Xcode selected:
+Build on an Apple Silicon Mac with full Xcode selected. Command Line Tools alone can't compile the SwiftUI settings window on recent SDKs.
 
 ```sh
-bash scripts/build.sh --test --build-only --ad-hoc
+bash scripts/build.sh --test
 ```
 
-Package the Apple Silicon test app as a preview DMG:
+The output is an ad-hoc signed `dist/HyperMac.app`. Package it as a preview DMG with:
 
 ```sh
-bash scripts/build.sh --build-only --ad-hoc
 bash scripts/package-dmg.sh
 ```
 
-The output is `dist/HyperMac.app`. This ad-hoc test bundle is not a notarized release, and the normal installer refuses it.
+Releases are built by **Actions → Apple Silicon preview DMG → Run workflow** with **Publish an unnotarized prerelease** enabled on `main`. Afterwards, bump `version` and `sha256` in [`Casks/hypermac.rb`](https://github.com/c0dewars/homebrew-tap/blob/main/Casks/hypermac.rb) in the tap. See [Distribution](docs/DISTRIBUTION.md#publish-a-homebrew-update).
 
 [GitHub Actions](https://github.com/c0dewars/HyperMac/actions) runs unit tests, lifecycle/geometry regressions, native builds and bundle checks on Apple Silicon. Automated checks do not replace real-window and clean-machine testing.
 

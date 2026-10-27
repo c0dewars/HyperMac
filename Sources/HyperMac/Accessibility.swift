@@ -110,6 +110,8 @@ final class Accessibility: @unchecked Sendable {
                     var current: [(element: AXUIElement, id: Int, number: Int?)] = []
                     for window in windows {
                         let number = Self.windowNumber(window)
+                        // Some apps list one window twice; a repeated entry must not share an ID.
+                        guard !current.contains(where: { number != nil && $0.number == number || CFEqual($0.element, window) }) else { continue }
                         let id: Int
                         if let known = previous.first(where: { number != nil && $0.number == number || CFEqual($0.element, window) }) { id = known.id }
                         else { id = self.nextID; self.nextID += 1 }

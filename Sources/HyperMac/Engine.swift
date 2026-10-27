@@ -412,7 +412,7 @@ final class Engine {
                 }
             }
         }
-        let observed = Dictionary(uniqueKeysWithValues: windows.map { ($0.descriptor.id, $0.descriptor.frame) })
+        let observed = Dictionary(windows.map { ($0.descriptor.id, $0.descriptor.frame) }) { first, _ in first }
         let displaySignature = screens.map { "\($0.id):\($0.primary):\($0.frame):\($0.usable)" }.sorted()
         guard settledGeneration != generation || observed != settledFrames || displaySignature != settledDisplays else { return }
         minimumSizes = minimumSizes.filter { observed[$0.key] != nil }
@@ -422,7 +422,7 @@ final class Engine {
         if !result.missingWindows { launchTask?.cancel() }
         let managedIDs = Set(result.moves.map(\.windowID))
         onManagedWindows?(Set(windows.filter { managedIDs.contains($0.descriptor.id) }.compactMap(\.windowNumber)))
-        let targets = Dictionary(uniqueKeysWithValues: result.moves.map { ($0.windowID, $0.frame) })
+        let targets = Dictionary(result.moves.map { ($0.windowID, $0.frame) }) { _, last in last }
         let duration = NSWorkspace.shared.accessibilityDisplayShouldReduceMotion || targets == lastTargets ? 0 : config.animationDuration
         lastTargets = targets
         var report = await accessibility.move(windows, moves: result.moves, animationDuration: duration, onAnimation: onTransition)
