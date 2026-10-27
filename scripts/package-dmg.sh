@@ -14,7 +14,6 @@ version="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$app/
 staging="$(mktemp -d "${TMPDIR:-/tmp}/hypermac-dmg.XXXXXX")"
 trap 'rm -rf "$staging"' EXIT
 ditto "$app" "$staging/HyperMac.app"
-# Package a disposable ad-hoc copy; preserve the local development identity.
 codesign --force --sign - --identifier local.hypermac.app "$staging/HyperMac.app"
 codesign --verify --strict "$staging/HyperMac.app"
 ln -s /Applications "$staging/Applications"
@@ -31,10 +30,11 @@ This is Apple's per-app exception for a preview you choose to trust; it does
 not disable Gatekeeper. The preview is not equivalent to a notarized release.
 
 This preview is ad-hoc signed, not Apple-notarized. Gatekeeper may block it.
-It is for development testing, not a trusted production installer. A local
-certificate-signed installation may require Accessibility permission to be
-refreshed if replaced by this preview. Prefer the README's source build process
-for a stable local signing identity across updates.
+It is for development testing, not a trusted production installer. Each update
+may require Accessibility permission to be refreshed.
+
+Homebrew users can install and update with:
+  brew install --cask c0dewars/tap/hypermac
 
 Source and instructions: https://github.com/c0dewars/HyperMac
 NOTICE

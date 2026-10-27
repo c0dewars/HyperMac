@@ -2,7 +2,15 @@
 
 HyperMac can be distributed as an ad-hoc-signed DMG. Recipients must explicitly allow the app because it is not signed with Developer ID or notarized by Apple. This does not require them to buy a developer membership.
 
-## Install a trusted preview
+## Install with Homebrew
+
+```sh
+brew install --cask c0dewars/tap/hypermac
+```
+
+The cask lives in the public [c0dewars/homebrew-tap](https://github.com/c0dewars/homebrew-tap) repository and downloads the DMG from this repository's GitHub Releases, so release assets must be publicly downloadable. Then follow steps 4–6 below. Update with `brew upgrade --cask hypermac`.
+
+## Install a trusted preview manually
 
 1. Use an Apple Silicon Mac running macOS 14 or later. Intel Macs are unsupported.
 2. Download the DMG from HyperMac's GitHub Releases. This repository is private, so downloads require repository access; an authorized owner can also share the downloaded DMG directly.
@@ -16,13 +24,17 @@ Do not disable Gatekeeper globally. “Cannot verify the developer” and “app
 ## Build the shareable DMG
 
 ```sh
-bash scripts/build.sh --build-only --ad-hoc
+bash scripts/build.sh
 bash scripts/package-dmg.sh
 ```
 
 The output includes an Apple Silicon preview DMG and a SHA-256 checksum. Verify a download with `shasum -a 256 -c <filename>.sha256` from the download folder. The GitHub **Apple Silicon preview DMG** workflow builds/tests the same package; its optional publication step is restricted to `main` and creates a prerelease.
 
-Local certificate signing is for keeping Accessibility identity stable on the development Mac. Do not share that private key. An ad-hoc update can require the recipient to refresh the app's Accessibility entry.
+All builds are ad-hoc signed. An update can require the recipient to refresh the app's Accessibility entry.
+
+## Publish a Homebrew update
+
+After the **Apple Silicon preview DMG** workflow publishes a release, update `Casks/hypermac.rb` in `c0dewars/homebrew-tap`: set `version` to `<app version>,<release tag>` and `sha256` to the value in the release's `.sha256` file. Run `brew audit --cask c0dewars/tap/hypermac` and `brew install --cask c0dewars/tap/hypermac` before pushing.
 
 A paid Apple Developer Program membership is needed for the normal Developer ID signing/notarization route that avoids this unidentified-developer exception. It is optional for the chosen distribution path. See [Apple's Developer ID documentation](https://developer.apple.com/help/account/certificates/create-developer-id-certificates/).
 

@@ -15,4 +15,4 @@ See [remaining acceptance checks](docs/KNOWN-ISSUES.md) and [test evidence](TEST
 
 ## Distribution
 
-The user chose distribution without a paid Apple Developer account. Preview DMGs are ad-hoc signed and unnotarized. Gatekeeper's per-app Open Anyway flow and Accessibility permission are expected. Do not disable global macOS security protections. A local signing certificate is machine-specific and must not be shared with friends or exported to CI. See [Distribution](docs/DISTRIBUTION.md).
+The user chose distribution without a paid Apple Developer account. Preview DMGs are ad-hoc signed and unnotarized. Gatekeeper's per-app Open Anyway flow and Accessibility permission are expected. Do not disable global macOS security protections. The Homebrew cask in `c0dewars/homebrew-tap` installs the same DMG. See [Distribution](docs/DISTRIBUTION.md).

@@ -22,7 +22,7 @@ jobs:
         with:
           persist-credentials: false
       - name: Build and test Apple Silicon app
-        run: bash scripts/build.sh --test --build-only --ad-hoc
+        run: bash scripts/build.sh --test
       - name: Check lifecycle and geometry
         run: |
           swiftc Sources/HyperMacCore/*.swift scripts/check-shortcuts.swift -o "$RUNNER_TEMP/hypermac-checks"
